@@ -147,7 +147,6 @@ docker-compose.yml
 Dockerfile
 download_models_hf.py
 download_models.py
-environment.yml
 gemini-2.5-pro-medical_report.json
 gpt-5-medical_report.json
 loop_test_report.sh
