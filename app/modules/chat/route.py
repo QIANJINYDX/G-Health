@@ -347,6 +347,7 @@ def send_message(session_id):
     rag_enabled = request.form.get('rag_enabled', '0') == '1'
     deep_think = request.form.get('deep_think', '0') == '1'
     language = request.form.get('language', 'zh')  # 获取语言参数，默认为中文
+    model = request.form.get('model', 'qwen3:32b')  # 获取模型参数，默认为 qwen3:32b
     file_paths = []
     saved_files = []  # 存储保存到数据库的文件信息
     
@@ -518,8 +519,8 @@ def send_message(session_id):
                         "content": current_message
                     })
                 # 判断最后一条消息是否涉及体检报告解析、健康指标（如血糖、血压、肝功能、BMI 等）、体检异常解释、健康建议或风险评估
-                is_call_report = is_call_report_workflow(current_message, ollama_client, language)
-                print(f"是否调用体检报告分析工作流: {is_call_report}")
+                is_call_report = is_call_report_workflow(current_message, ollama_client, language, model=model)
+                print(f"是否调用体检报告分析工作流: {is_call_report}, 使用模型: {model}")
                 if is_call_report:
                     # 开始体检报告流式工作流
                     yield f"data: {json.dumps({'type': 'report_workflow_start'})}\n\n"
@@ -541,7 +542,7 @@ def send_message(session_id):
                     workflow_stages = []
                     try:
                         stage_index = 0
-                        for event in report_workflow_stream(dialogue_text, ollama_client, language):
+                        for event in report_workflow_stream(dialogue_text, ollama_client, language, model=model):
                             if not isinstance(event, dict):
                                 continue
                             etype = event.get('type')
@@ -611,6 +612,7 @@ def send_message(session_id):
                     stream_response,references = chat_with_llm(
                         messages=formatted_messages,
                         client=ollama_client,
+                        model=model,  # 使用从请求中获取的模型参数
                         use_rag=rag_enabled,
                         deep_think=deep_think,
                         stream=True
@@ -745,6 +747,135 @@ def send_message(session_id):
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
     })
+
+@chat_bp.route('/models', methods=['GET'])
+@login_required
+def get_ollama_models():
+    """获取可用的Ollama模型列表"""
+    try:
+        # 获取Ollama模型列表
+        response = ollama_client.list()
+        
+        # 调试：打印响应类型和内容
+        print(f"Ollama API响应类型: {type(response)}")
+        
+        # 安全地提取模型名称和详细信息
+        models = []
+        
+        # Ollama API返回格式可能是：
+        # 1. ListResponse对象（有models属性）
+        # 2. 字典（包含'models'键）
+        # 3. 列表
+        model_list = []
+        
+        # 处理ListResponse对象
+        if hasattr(response, 'models'):
+            model_list = response.models
+            print(f"检测到ListResponse对象，包含 {len(model_list)} 个模型")
+        elif isinstance(response, dict):
+            if 'models' in response:
+                model_list = response['models']
+                print(f"检测到字典格式，包含 {len(model_list)} 个模型")
+            else:
+                print(f"警告：响应字典中没有'models'键，键为: {list(response.keys())}")
+        elif isinstance(response, list):
+            model_list = response
+            print(f"检测到列表格式，包含 {len(model_list)} 个模型")
+        else:
+            print(f"警告：意外的响应类型: {type(response)}")
+        
+        # 处理模型列表
+        if model_list:
+            print(f"开始处理 {len(model_list)} 个模型")
+            for model_item in model_list:
+                try:
+                    # 处理Model对象（有model属性）或字典（有name/model键）
+                    if hasattr(model_item, 'model'):
+                        # Model对象
+                        model_name = model_item.model
+                        size = getattr(model_item, 'size', 0)
+                        modified_at = str(getattr(model_item, 'modified_at', ''))
+                        digest = getattr(model_item, 'digest', '')
+                        
+                        # 提取details信息（ModelDetails对象）
+                        details = getattr(model_item, 'details', None)
+                        if details:
+                            family = getattr(details, 'family', '')
+                            format_val = getattr(details, 'format', '')
+                            param_size = getattr(details, 'parameter_size', '')
+                            quant_level = getattr(details, 'quantization_level', '')
+                        else:
+                            family = format_val = param_size = quant_level = ''
+                    elif isinstance(model_item, dict):
+                        # 字典格式
+                        model_name = model_item.get('name') or model_item.get('model')
+                        size = model_item.get('size', 0)
+                        modified_at = str(model_item.get('modified_at', ''))
+                        digest = model_item.get('digest', '')
+                        
+                        # 提取details信息
+                        details = model_item.get('details', {})
+                        if isinstance(details, dict):
+                            family = details.get('family', '')
+                            format_val = details.get('format', '')
+                            param_size = details.get('parameter_size', '')
+                            quant_level = details.get('quantization_level', '')
+                        elif hasattr(details, 'family'):
+                            # details是对象
+                            family = details.family if hasattr(details, 'family') else ''
+                            format_val = details.format if hasattr(details, 'format') else ''
+                            param_size = details.parameter_size if hasattr(details, 'parameter_size') else ''
+                            quant_level = details.quantization_level if hasattr(details, 'quantization_level') else ''
+                        else:
+                            family = format_val = param_size = quant_level = ''
+                    else:
+                        print(f"警告：未知的模型对象类型: {type(model_item)}")
+                        continue
+                    
+                    if model_name:
+                        model_info = {
+                            'name': model_name,
+                            'size': size,
+                            'modified_at': modified_at,
+                            'digest': digest,
+                            'family': family,
+                            'format': format_val,
+                            'parameter_size': param_size,
+                            'quantization_level': quant_level
+                        }
+                        models.append(model_info)
+                        print(f"成功添加模型: {model_name} (大小: {size} bytes)")
+                    else:
+                        print(f"警告：模型对象缺少名称字段")
+                except Exception as e:
+                    print(f"处理模型时出错: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+        else:
+            print(f"错误：无法提取模型列表")
+        
+        # 按模型名称排序
+        models.sort(key=lambda x: x['name'])
+        
+        print(f"最终返回 {len(models)} 个模型")
+        
+        return jsonify({
+            'status': 'success',
+            'models': models,
+            'count': len(models)
+        })
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"获取Ollama模型列表失败: {error_detail}")
+        return jsonify({
+            'status': 'error',
+            'message': f'获取模型列表失败：{str(e)}',
+            'models': [],
+            'count': 0,
+            'error_detail': str(error_detail)
+        }), 500
 
 @chat_bp.route('/test-connection', methods=['GET'])
 def test_connection():

@@ -1133,6 +1133,10 @@
                 </button>
                 </div>
                 <div class="d-flex align-items-center gap-2">
+                <!-- 模型选择下拉框（移动端） -->
+                <select class="form-select form-select-sm" id="model-select-mobile" style="width: auto; min-width: 120px; max-width: 160px;" title="选择Ollama模型">
+                  <option value="qwen3:32b" selected>qwen3:32b</option>
+                </select>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-zh-mobile" onclick="i18n.switchLanguage('zh')">ZH</button>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-en-mobile" onclick="i18n.switchLanguage('en')">EN</button>
                 </div>
@@ -1188,6 +1192,10 @@
                 </button>
                 </div>
                 <div class="d-flex align-items-center gap-2">
+                <!-- 模型选择下拉框 -->
+                <select class="form-select form-select-sm" id="model-select" style="width: auto; min-width: 140px; max-width: 180px;" title="选择Ollama模型">
+                  <option value="qwen3:32b" selected>qwen3:32b</option>
+                </select>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-zh-sidebar" onclick="i18n.switchLanguage('zh')">ZH</button>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-en-sidebar" onclick="i18n.switchLanguage('en')">EN</button>
                 </div>
@@ -1412,6 +1420,162 @@
         let currentSessionId = null;
         let ragEnabled = false;
         let deepThinkEnabled = false;
+        let selectedModel = 'qwen3:32b'; // 默认模型
+
+        // 加载Ollama模型列表
+        async function loadOllamaModels() {
+            try {
+                const modelSelect = document.getElementById('model-select');
+                const modelSelectMobile = document.getElementById('model-select-mobile');
+                
+                if (!modelSelect && !modelSelectMobile) {
+                    console.error('模型选择器元素未找到');
+                    return;
+                }
+                
+                // 显示加载状态
+                const loadingOption = '<option value="">加载中...</option>';
+                if (modelSelect) {
+                    modelSelect.innerHTML = loadingOption;
+                    modelSelect.disabled = true;
+                }
+                if (modelSelectMobile) {
+                    modelSelectMobile.innerHTML = loadingOption;
+                    modelSelectMobile.disabled = true;
+                }
+                
+                const response = await fetch('/api/v1/chat/models');
+                const data = await response.json();
+                
+                // 清空现有选项
+                if (modelSelect) {
+                    modelSelect.innerHTML = '';
+                    modelSelect.disabled = false;
+                }
+                if (modelSelectMobile) {
+                    modelSelectMobile.innerHTML = '';
+                    modelSelectMobile.disabled = false;
+                }
+                
+                // 辅助函数：填充模型选项
+                const populateModelSelect = (selectElement) => {
+                    if (!selectElement) return;
+                    
+                    if (data.status === 'success' && data.models && data.models.length > 0) {
+                        // 从localStorage恢复之前选择的模型
+                        const savedModel = localStorage.getItem('selectedOllamaModel');
+                        let hasSelectedModel = false;
+                        
+                        // 添加所有检测到的模型选项
+                        data.models.forEach(model => {
+                            const option = document.createElement('option');
+                            option.value = model.name;
+                            option.textContent = model.name;
+                            
+                            // 如果模型名称匹配保存的模型或默认模型，设置为选中
+                            if (savedModel && model.name === savedModel) {
+                                option.selected = true;
+                                selectedModel = savedModel;
+                                hasSelectedModel = true;
+                            } else if (!hasSelectedModel && model.name === selectedModel) {
+                                option.selected = true;
+                                hasSelectedModel = true;
+                            }
+                            
+                            selectElement.appendChild(option);
+                        });
+                        
+                        // 如果保存的模型或默认模型不在列表中，添加它
+                        const modelToCheck = savedModel || selectedModel;
+                        if (!data.models.find(m => m.name === modelToCheck)) {
+                            const defaultOption = document.createElement('option');
+                            defaultOption.value = modelToCheck;
+                            defaultOption.textContent = modelToCheck + ' (未安装)';
+                            defaultOption.selected = true;
+                            selectElement.insertBefore(defaultOption, selectElement.firstChild);
+                            selectedModel = modelToCheck;
+                        } else if (savedModel) {
+                            selectedModel = savedModel;
+                        }
+                    } else {
+                        // 如果没有检测到模型，显示错误提示
+                        const errorOption = document.createElement('option');
+                        errorOption.value = selectedModel;
+                        errorOption.textContent = '未检测到模型';
+                        errorOption.disabled = true;
+                        selectElement.appendChild(errorOption);
+                        
+                        // 添加默认模型选项
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = selectedModel;
+                        defaultOption.textContent = selectedModel + ' (默认)';
+                        defaultOption.selected = true;
+                        selectElement.appendChild(defaultOption);
+                    }
+                };
+                
+                // 填充两个选择器
+                populateModelSelect(modelSelect);
+                populateModelSelect(modelSelectMobile);
+                
+                if (data.status === 'success' && data.models && data.models.length > 0) {
+                    console.log(`成功加载 ${data.count || data.models.length} 个Ollama模型`);
+                } else {
+                    console.warn('未找到可用的Ollama模型，使用默认模型:', selectedModel);
+                    if (data.message) {
+                        console.error('错误信息:', data.message);
+                    }
+                }
+            } catch (error) {
+                console.error('加载Ollama模型列表失败:', error);
+                const errorOption = document.createElement('option');
+                errorOption.value = selectedModel;
+                errorOption.textContent = '加载失败，使用默认模型';
+                errorOption.selected = true;
+                
+                if (modelSelect) {
+                    modelSelect.innerHTML = '';
+                    modelSelect.appendChild(errorOption.cloneNode(true));
+                    modelSelect.disabled = false;
+                }
+                if (modelSelectMobile) {
+                    modelSelectMobile.innerHTML = '';
+                    modelSelectMobile.appendChild(errorOption.cloneNode(true));
+                    modelSelectMobile.disabled = false;
+                }
+            }
+        }
+
+        // 监听模型选择变化
+        function setupModelSelector() {
+            const modelSelect = document.getElementById('model-select');
+            const modelSelectMobile = document.getElementById('model-select-mobile');
+            
+            // 辅助函数：设置选择器事件监听
+            const setupSelectListener = (selectElement) => {
+                if (!selectElement) return;
+                
+                selectElement.addEventListener('change', function() {
+                    if (this.value && this.value !== '') {
+                        selectedModel = this.value;
+                        localStorage.setItem('selectedOllamaModel', selectedModel);
+                        
+                        // 同步更新另一个选择器
+                        if (selectElement === modelSelect && modelSelectMobile) {
+                            modelSelectMobile.value = selectedModel;
+                        } else if (selectElement === modelSelectMobile && modelSelect) {
+                            modelSelect.value = selectedModel;
+                        }
+                        
+                        console.log('已选择模型:', selectedModel);
+                    }
+                });
+            };
+            
+            // 设置两个选择器的事件监听
+            setupSelectListener(modelSelect);
+            setupSelectListener(modelSelectMobile);
+        }
 
         function toggleDeepThink() {
             deepThinkEnabled = !deepThinkEnabled;
@@ -1585,6 +1749,9 @@
             updateLangButtons();
             loadChatHistory();
             loadUserInfo();
+            // 加载Ollama模型列表并设置模型选择器
+            loadOllamaModels();
+            setupModelSelector();
             
             // 初始化输入框位置
             const sidebar = document.getElementById('sidebar');
@@ -2428,6 +2595,8 @@
                 // 添加语言参数
                 const currentLang = i18n.currentLang || 'zh';
                 formData.append('language', currentLang);
+                // 添加模型参数
+                formData.append('model', selectedModel);
                 // 添加文件到formData
                 selectedFiles.forEach((file) => {
                     formData.append('files', file);

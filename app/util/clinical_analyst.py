@@ -847,7 +847,7 @@ def chat_with_llm(
         print_exception_with_source(e, title="LLM chat error")
         raise
 # 判断是否调用体检报告分析工作流
-def is_call_report_workflow(dialogue: str, client: Client, language: str = 'zh') -> bool:
+def is_call_report_workflow(dialogue: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> bool:
     """
     判断是否调用体检报告分析工作流
     
@@ -855,6 +855,7 @@ def is_call_report_workflow(dialogue: str, client: Client, language: str = 'zh')
         dialogue: 用户输入
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     """
     try:
         prompt_template = get_prompt('TIJIANBAOGAO_PROMPT', language)
@@ -862,6 +863,7 @@ def is_call_report_workflow(dialogue: str, client: Client, language: str = 'zh')
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_rag=False,
             use_mcp=False
         )
@@ -1555,7 +1557,7 @@ def analyze_uploaded_metrics(extracted_metrics: Dict[str, Any], reference_data, 
     return {"analysis": analysis_results}
 
 
-def extract_metrics_from_dialogue(dialogue: str, client: Client, language: str = 'zh') -> Dict[str, Any]:
+def extract_metrics_from_dialogue(dialogue: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> Dict[str, Any]:
     """
     从用户与医生的对话中提取体检指标数据
     
@@ -1563,6 +1565,7 @@ def extract_metrics_from_dialogue(dialogue: str, client: Client, language: str =
         dialogue: 用户与医生的对话内容
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     
     Returns:
         Dict[str, Any]: 包含提取的指标数据的字典，格式如下：
@@ -1593,6 +1596,7 @@ def extract_metrics_from_dialogue(dialogue: str, client: Client, language: str =
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_rag=False,
             use_mcp=False,
             deep_think=True
@@ -1970,7 +1974,7 @@ def _unwrap_llm_result(result: Union[str, Dict[str, Any]]) -> str:
         return ""
 
 
-def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh') -> Generator[Dict[str, Any], None, None]:
+def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> Generator[Dict[str, Any], None, None]:
     """
     流式体检报告分析工作流：每个阶段完成后产出一条事件，用于逐步告知前端。
 
@@ -1978,6 +1982,7 @@ def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh') 
         dialogue: 用户与医生的对话内容
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
 
     Yields 字典事件：
     - {"type": "content", "content": str}  用于直接流式输出到前端主内容区
@@ -1992,7 +1997,7 @@ def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh') 
         logger.log_stage("输入对话", dialogue)
         
         # Step 1: 指标抽取
-        extracted_metrics = extract_metrics_from_dialogue(dialogue, client, language)
+        extracted_metrics = extract_metrics_from_dialogue(dialogue, client, language, model=model)
         metrics_count = extracted_metrics.get("metrics_count", len(extracted_metrics.get("metrics", [])))
         logger.log_stage("Step1_指标提取", extracted_metrics)
         print(f"指标提取完成，共提取到 {metrics_count} 个指标")
