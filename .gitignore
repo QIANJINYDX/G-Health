@@ -182,3 +182,4 @@ results/model_router
 app/util/体检报告指标归总.csv
 app/util/tijian_en_fixed.csv
 risk_assessment/models_20251014.tar.gz
+.gitignore
