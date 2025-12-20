@@ -1,4 +1,4 @@
-name: JiShi
+name: jishi
 channels:
   - defaults
 dependencies:
@@ -478,5 +478,3 @@ dependencies:
       - zipp==3.23.0
       - zopfli==0.2.3.post1
       - zstandard==0.23.0
-prefix: 
-  /inspire/ssd/project/aiscientist/yedongxin-CZXS25120006/miniconda3/envs/jianxiaozhi_web

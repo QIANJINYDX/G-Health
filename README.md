@@ -54,6 +54,18 @@ This project implements a comprehensive multi-agent medical system for health ex
 
 ### Setup
 
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/QIANJINYDX/JiShi.git
+   cd JiShi
+   ```
+
+2. **Install the JiShiconda environment**:
+   ```bash
+   conda env create -f environment.yml
+   conda activate jishi
+   ``` 
+
 ## Usage
 
 ### Starting the Main Application
