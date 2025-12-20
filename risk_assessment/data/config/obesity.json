@@ -1,0 +1,213 @@
+{
+    "data_path": "risk_assessment/data/csvfile/obesity_dataset.csv",
+    "model_name": "obesity",
+    "model_name_en": "Obesity",
+    "model_type": "multiclass",
+    "model_path": "risk_assessment/models/obesity",
+    "result_path": "risk_assessment/results/obesity",
+    "target_column": "Type of Obesity",
+    "target_mapping_draw": {
+        "0": "正常体重",
+        "1": "超重一级",
+        "2": "超重二级",
+        "3": "肥胖一级",
+        "4": "体重过低",
+        "5": "肥胖二级",
+        "6": "肥胖三级"
+    },
+    "target_mapping_draw_en": {
+        "0": "Normal Weight",
+        "1": "Overweight Class I",
+        "2": "Overweight Class II",
+        "3": "Obesity Class I",
+        "4": "Underweight",
+        "5": "Obesity Class II",
+        "6": "Obesity Class III"
+        },
+    "feature_columns": {
+        "Gender": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["女", "男"],
+            "values_en": ["Female", "Male"],
+            "mapping": {
+                "女": 0,
+                "男": 1
+            }
+        },
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["年龄"]
+        },
+        "Height": {
+            "description": "身高(m)",
+            "description_en": "Height (m)",
+            "type": "numerical",
+            "values": ["身高(m)"]
+        },
+        "Weight": {
+            "description": "体重(kg)",
+            "description_en": "Weight (kg)",
+            "type": "numerical",
+            "values": ["体重(kg)"]
+        },
+        "Family History of Obesity": {
+            "description": "家族肥胖史",
+            "description_en": "Family history of obesity",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 0,
+                "否": 1
+            }
+        },
+        "High-Calorie Diet": {
+            "description": "高热量饮食",
+            "description_en": "High-calorie diet",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 0
+            }
+        },
+        "Frequency of Vegetable Intake": {
+            "description": "蔬菜摄入频率",
+            "description_en": "Frequency of vegetable intake",
+            "type": "categorical",
+            "values": ["低频（很少吃蔬菜）", "中频（偶尔吃蔬菜）", "高频（经常吃蔬菜）"],
+            "values_en": ["Low frequency (rarely eat vegetables)", "Medium frequency (occasionally eat vegetables)", "High frequency (often eat vegetables)"],
+            "mapping": {
+                "低频（很少吃蔬菜）": 0,
+                "中频（偶尔吃蔬菜）": 1,
+                "高频（经常吃蔬菜）": 2
+            }
+        },
+        "Number of Meals per Day": {
+            "description": "每日用餐次数",
+            "description_en": "Number of meals per day",
+            "type": "numerical",
+            "values": ["每日用餐次数"]
+        },
+        "Frequency of Extracurricular Activities": {
+            "description": "课外活动频率",
+            "description_en": "Frequency of extracurricular activities",
+            "type": "categorical",
+            "values": ["从不参加课外活动", "低频（很少参加课外活动）", "中频（偶尔参加课外活动）", "高频（经常参加课外活动）"],
+            "values_en": ["Never participate", "Low frequency (rarely participate)", "Medium frequency (occasionally participate)", "High frequency (often participate)"],
+            "mapping": {
+                "从不参加课外活动": 0,
+                "低频（很少参加课外活动）": 1,
+                "中频（偶尔参加课外活动）": 2,
+                "高频（经常参加课外活动）": 3
+            }
+        },
+        "Smoking Status": {
+            "description": "是否吸烟",
+            "description_en": "Do you smoke?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 0,
+                "否": 1
+            }
+        },
+        "Daily Water Intake": {
+            "description": "每日饮水量",
+            "description_en": "Daily water intake",
+            "type": "categorical",
+            "values": ["0-500ml", "500-1500ml", "1500ml以上"],
+            "values_en": ["0-500ml", "500-1500ml", "Above 1500ml"],
+            "mapping": {
+                "0-500ml": 0,
+                "500-1500ml": 1,
+                "1500ml以上": 2
+            }
+        },
+        "Calorie Monitoring": {
+            "description": "是否监控卡路里",
+            "description_en": "Do you monitor calories?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 0
+            }
+        },
+        "Weekly Physical Activity Duration": {
+            "description": "每周运动时间",
+            "description_en": "Weekly physical activity duration",
+            "type": "categorical",
+            "values": ["少于1小时", "1-3小时", "3-5小时", "5小时以上"],
+            "values_en": ["Less than 1 hour", "1-3 hours", "3-5 hours", "More than 5 hours"],
+            "mapping": {
+                "少于1小时": 0,
+                "1-3小时": 1,
+                "3-5小时": 2,
+                "5小时以上": 3
+            }
+        },
+        "Daily Screen Time": {
+            "description": "每日使用技术产品时间",
+            "description_en": "Daily screen time",
+            "type": "categorical",
+            "values": ["5小时以下", "5小时以上"],
+            "values_en": ["Less than 5 hours", "More than 5 hours"],
+            "mapping": {
+                "5小时以下": 0,
+                "5小时以上": 1
+            }
+        },
+        "Alcohol Consumption Frequency": {
+            "description": "饮酒频率",
+            "description_en": "Alcohol consumption frequency",
+            "type": "categorical",
+            "values": ["从不饮酒", "偶尔饮酒", "经常饮酒", "每天饮酒"],
+            "values_en": ["Never drink", "Occasionally drink", "Frequently drink", "Drink daily"],
+            "mapping": {
+                "从不饮酒": 0,
+                "偶尔饮酒": 1,
+                "经常饮酒": 2,
+                "每天饮酒": 3
+            }
+        },
+        "Mode of Transportation": {
+            "description": "交通方式",
+            "description_en": "Mode of transportation",
+            "type": "categorical",
+            "values": ["公共交通", "步行", "开车", "摩托车", "自行车"],
+            "values_en": ["Public transportation", "Walking", "Driving", "Motorcycle", "Bicycle"],
+            "mapping": {
+                "公共交通": 0,
+                "步行": 1,
+                "开车": 2,
+                "摩托车": 3,
+                "自行车": 4
+            }
+        },
+        "Type of Obesity": {
+            "description": "肥胖类型",
+            "description_en": "Type of obesity",
+            "type": "categorical",
+            "values": ["正常体重", "超重一级", "超重二级", "肥胖一级", "体重过低", "肥胖二级", "肥胖三级"],
+            "values_en": ["Normal Weight", "Overweight Class I", "Overweight Class II", "Obesity Class I", "Underweight", "Obesity Class II", "Obesity Class III"],
+            "mapping": {
+                "正常体重": 0,
+                "超重一级": 1,
+                "超重二级": 2,
+                "肥胖一级": 3,
+                "体重过低": 4,
+                "肥胖二级": 5,
+                "肥胖三级": 6
+            }
+        }
+    }
+  }
+  

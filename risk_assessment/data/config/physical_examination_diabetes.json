@@ -1,0 +1,117 @@
+{
+    "data_path": "risk_assessment/data/csvfile/physical_examination_diabetes_dataset.csv",
+    "model_name": "physical_examination_diabetes",
+    "model_name_en": "Physical Examination Diabetes",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/physical_examination_diabetes",
+    "result_path": "risk_assessment/results/physical_examination_diabetes",
+    "target_column": "是否糖尿病",
+    "target_mapping_draw": {
+        "0": "否",
+        "1": "是"
+    },
+    "target_mapping_draw_en": {
+        "0": "No",
+        "1": "Yes"
+    },
+    "feature_columns": {
+        "是否糖尿病": {
+            "description": "是否糖尿病（0=否，1=是，分类目标）",
+            "description_en": "Do you have diabetes? (0=No, 1=Yes, classification target)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "性别": {
+            "description": "性别（0=女，1=男）",
+            "description_en": "Gender (0=Female, 1=Male)",
+            "type": "categorical",
+            "values": ["女", "男"],
+            "values_en": ["Female", "Male"],
+            "mapping": {"女": 0, "男": 1}
+        },
+        "年龄": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "高密度脂蛋白胆固醇": {
+            "description": "好胆固醇，值越高越好",
+            "description_en": "HDL cholesterol (good cholesterol, higher is better)",
+            "type": "numerical",
+            "values": ["mmol/L"]
+        },
+        "低密度脂蛋白胆固醇": {
+            "description": "坏胆固醇，值越低越好",
+            "description_en": "LDL cholesterol (bad cholesterol, lower is better)",
+            "type": "numerical",
+            "values": ["mmol/L"]
+        },
+        "极低密度脂蛋白胆固醇": {
+            "description": "与甘油三酯关系密切，反映脂质代谢状态",
+            "description_en": "VLDL cholesterol (closely related to triglycerides, reflects lipid metabolism)",
+            "type": "numerical",
+            "values": ["mmol/L"]
+        },
+        "甘油三酯": {
+            "description": "血脂的重要组成部分，高值代表脂代谢异常",
+            "description_en": "Triglycerides (important component of blood lipids, high values indicate abnormal lipid metabolism)",
+            "type": "numerical",
+            "values": ["mmol/L"]
+        },
+        "总胆固醇": {
+            "description": "HDL + LDL + VLDL",
+            "description_en": "Total cholesterol (HDL + LDL + VLDL)",
+            "type": "numerical",
+            "values": ["mmol/L"]
+        },
+        "脉搏": {
+            "description": "心率（次/分钟）",
+            "description_en": "Pulse rate (beats/minute)",
+            "type": "numerical",
+            "values": ["次/分钟"]
+        },
+        "舒张压": {
+            "description": "血压（下压），单位：mmHg",
+            "description_en": "Diastolic blood pressure (lower pressure), unit: mmHg",
+            "type": "numerical",
+            "values": ["mmHg"]
+        },
+        "高血压史": {
+            "description": "高血压史（0=无，1=有）",
+            "description_en": "History of hypertension (0=No, 1=Yes)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "尿素氮": {
+            "description": "反映肾功能和蛋白代谢",
+            "description_en": "Blood urea nitrogen (reflects kidney function and protein metabolism)",
+            "type": "numerical",
+            "values": ["mmol/L"]
+        },
+        "尿酸": {
+            "description": "升高与痛风、高嘌呤饮食有关",
+            "description_en": "Uric acid (elevation related to gout and high-purine diet)",
+            "type": "numerical",
+            "values": ["umol/L"]
+        },
+        "肌酐": {
+            "description": "肾功能指标之一",
+            "description_en": "Creatinine (one of the kidney function indicators)",
+            "type": "numerical",
+            "values": ["umol/L"]
+        },
+        "体重检查结果": {
+            "description": "体重检查结果（编码形式，0=正常，1=偏高，2=偏低等）",
+            "description_en": "Weight check result (encoded form, 0=Normal, 1=High, 2=Low, etc.)",
+            "type": "categorical",
+            "values": ["正常", "偏高", "偏低"],
+            "values_en": ["Normal", "High", "Low"],
+            "mapping": {"正常": 0, "偏高": 1, "偏低": 2}
+        }
+    }
+}

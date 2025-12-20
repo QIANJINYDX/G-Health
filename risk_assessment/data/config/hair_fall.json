@@ -1,0 +1,113 @@
+{
+    "data_path": "risk_assessment/data/csvfile/hair_fall_dataset.csv",
+    "model_name": "hair_fall",
+    "model_name_en": "Hair Loss",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/hair_fall",
+    "result_path": "risk_assessment/results/hair_fall",
+    "target_column": "Hair Loss",
+    "target_mapping_draw": {
+        "0": "无脱发",
+        "1": "有脱发"
+    },
+    "target_mapping_draw_en": {
+        "0": "No Hair Loss",
+        "1": "Hair Loss"
+    },
+    "feature_columns": {
+        "Hair Loss": {
+            "description": "是否存在脱发现象（1=有脱发，0=无脱发）",
+            "description_en": "Do you experience hair loss? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无脱发", "有脱发"],
+            "values_en": ["No Hair Loss", "Hair Loss"],
+            "mapping": {"无脱发": 0, "有脱发": 1}
+        },
+        "Genetics": {
+            "description": "是否存在遗传因素（Yes/No）",
+            "description_en": "Do you have genetic factors? (Yes/No)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "Yes": 1}
+        },
+        "Hormonal Changes": {
+            "description": "是否存在激素变化相关问题（Yes/No）",
+            "description_en": "Do you have hormonal change-related issues? (Yes/No)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "Yes": 1}
+        },
+        "Medical Conditions": {
+            "description": "是否有相关的医学疾病（如皮肤病等）",
+            "description_en": "Do you have related medical conditions (e.g., skin diseases)?",
+            "type": "categorical",
+            "values": ["Alopecia Areata", "Androgenetic Alopecia", "Dermatitis", "Dermatosis", "Eczema", "No Data", "Psoriasis", "Ringworm", "Scalp Infection", "Seborrheic Dermatitis", "Thyroid Problems"],
+            "values_en": ["Alopecia Areata", "Androgenetic Alopecia", "Dermatitis", "Dermatosis", "Eczema", "No Data", "Psoriasis", "Ringworm", "Scalp Infection", "Seborrheic Dermatitis", "Thyroid Problems"],
+            "mapping": {"Alopecia Areata": 0, "Androgenetic Alopecia": 1, "Dermatitis": 2, "Dermatosis": 3, "Eczema": 4, "No Data": 5, "Psoriasis": 6, "Ringworm": 7, "Scalp Infection": 8, "Seborrheic Dermatitis": 9, "Thyroid Problems": 10}
+        },
+        "Medications & Treatments": {
+            "description": "服用或使用过的药物/治疗方式",
+            "description_en": "Medications or treatments you have taken or used",
+            "type": "categorical",
+            "values": ["Accutane", "Antibiotics", "Antidepressants", "Antifungal Cream", "Blood Pressure Medication", "Chemotherapy", "Heart Medication", "Immunomodulators", "No Data", "Rogaine", "Steroids"],
+            "values_en": ["Accutane", "Antibiotics", "Antidepressants", "Antifungal Cream", "Blood Pressure Medication", "Chemotherapy", "Heart Medication", "Immunomodulators", "No Data", "Rogaine", "Steroids"],
+            "mapping": {"Accutane": 0, "Antibiotics": 1, "Antidepressants": 2, "Antifungal Cream": 3, "Blood Pressure Medication": 4, "Chemotherapy": 5, "Heart Medication": 6, "Immunomodulators": 7, "No Data": 8, "Rogaine": 9, "Steroids": 10}
+        },
+        "Nutritional Deficiencies": {
+            "description": "存在哪些营养缺乏（如铁、蛋白质、镁、维生素等）",
+            "description_en": "What nutritional deficiencies do you have? (e.g., iron, protein, magnesium, vitamins, etc.)",
+            "type": "categorical",
+            "values": ["Biotin Deficiency", "Iron deficiency", "Magnesium deficiency", "No Data", "Omega-3 fatty acids", "Protein deficiency", "Selenium deficiency", "Vitamin A Deficiency", "Vitamin D Deficiency", "Vitamin E deficiency", "Zinc Deficiency"],
+            "values_en": ["Biotin Deficiency", "Iron deficiency", "Magnesium deficiency", "No Data", "Omega-3 fatty acids", "Protein deficiency", "Selenium deficiency", "Vitamin A Deficiency", "Vitamin D Deficiency", "Vitamin E deficiency", "Zinc Deficiency"],
+            "mapping": {"Biotin Deficiency": 0, "Iron deficiency": 1, "Magnesium deficiency": 2, "No Data": 3, "Omega-3 fatty acids": 4, "Protein deficiency": 5, "Selenium deficiency": 6, "Vitamin A Deficiency": 7, "Vitamin D Deficiency": 8, "Vitamin E deficiency": 9, "Zinc Deficiency": 10}
+        },
+        "Stress": {
+            "description": "压力水平（High / Moderate / Low）",
+            "description_en": "Stress level (High/Moderate/Low)",
+            "type": "categorical",
+            "values": ["High", "Low", "Moderate"],
+            "values_en": ["High", "Low", "Moderate"],
+            "mapping": {"High": 0, "Low": 1, "Moderate": 2}
+        },
+        "Age": {
+            "description": "年龄（数值）",
+            "description_en": "Age (numeric value)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "Poor Hair Care Habits": {
+            "description": "是否存在不良护发习惯（Yes/No）",
+            "description_en": "Do you have poor hair care habits? (Yes/No)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "Yes": 1}
+        },
+        "Environmental Factors": {
+            "description": "环境因素是否可能影响脱发（Yes/No）",
+            "description_en": "Do environmental factors potentially affect hair loss? (Yes/No)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "Yes": 1}
+        },
+        "Smoking": {
+            "description": "是否吸烟（Yes/No）",
+            "description_en": "Do you smoke? (Yes/No)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "Yes": 1}
+        },
+        "Weight Loss": {
+            "description": "是否近期体重减轻（Yes/No）",
+            "description_en": "Have you experienced recent weight loss? (Yes/No)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "Yes": 1}
+        }
+    }
+}

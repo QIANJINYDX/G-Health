@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="login">济世 - 登录/注册</title>
+    <script src="/static/js/i18n.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f7f7f8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+
+        .form-container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #00a8ff;
+            border-bottom: 2px solid #00a8ff;
+            margin-bottom: -2px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #00a8ff;
+            box-shadow: 0 0 0 2px rgba(0, 168, 255, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: #00a8ff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #0097e6;
+        }
+
+        .error-message {
+            color: #ff4d4f;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .register-form {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .form-container {
+                padding: 1.5rem;
+            }
+        }
+
+        .lang-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .lang-switcher button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e5e5e5;
+            background: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-switcher button:hover {
+            background: #f5f5f5;
+            border-color: #00a8ff;
+        }
+
+        .lang-switcher button.active {
+            background: #00a8ff;
+            color: #ffffff;
+            border-color: #00a8ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="lang-switcher">
+        <button id="lang-zh" class="active" onclick="i18n.switchLanguage('zh')">中文</button>
+        <button id="lang-en" onclick="i18n.switchLanguage('en')">English</button>
+    </div>
+    <div class="container">
+        <div class="logo-container">
+            <img src="/static/images/logo.png" alt="济世 Logo" class="logo">
+            <h1 data-i18n="appName">济世</h1>
+        </div>
+        <div class="form-container">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('login')" data-i18n="login">登录</div>
+                <div class="tab" onclick="switchTab('register')" data-i18n="register">注册</div>
+            </div>
+            
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="login-username" data-i18n="username">用户名</label>
+                    <input type="text" id="login-username" class="form-control" required>
+                    <div class="error-message" id="login-username-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password" data-i18n="password">密码</label>
+                    <input type="password" id="login-password" class="form-control" required>
+                    <div class="error-message" id="login-password-error"></div>
+                </div>
+                <button type="submit" class="btn" data-i18n="login">登录</button>
+            </form>
+
+            <form id="register-form" class="register-form">
+                <div class="form-group">
+                    <label for="register-username" data-i18n="username">用户名</label>
+                    <input type="text" id="register-username" class="form-control" required>
+                    <div class="error-message" id="register-username-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password" data-i18n="password">密码</label>
+                    <input type="password" id="register-password" class="form-control" required>
+                    <div class="error-message" id="register-password-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password" data-i18n="confirmPassword">确认密码</label>
+                    <input type="password" id="register-confirm-password" class="form-control" required>
+                    <div class="error-message" id="register-confirm-password-error"></div>
+                </div>
+                <button type="submit" class="btn" data-i18n="register">注册</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 更新语言切换按钮状态
+        function updateLangButtons() {
+            const currentLang = i18n.currentLang;
+            document.getElementById('lang-zh').classList.toggle('active', currentLang === 'zh');
+            document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
+        }
+
+        // 监听语言切换
+        const originalSwitchLanguage = i18n.switchLanguage;
+        i18n.switchLanguage = function(lang) {
+            originalSwitchLanguage.call(this, lang);
+            updateLangButtons();
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLangButtons();
+        });
+
+        function switchTab(tab) {
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                tabs[0].classList.add('active');
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                tabs[1].classList.add('active');
+            }
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // 登录成功，跳转到聊天页面
+                    window.location.href = '/api/v1/chat';
+                } else {
+                    // 显示错误信息
+                    document.getElementById('login-password-error').textContent = data.message;
+                    document.getElementById('login-password-error').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+
+            if (password !== confirmPassword) {
+                document.getElementById('register-confirm-password-error').textContent = i18n.t('passwordMismatchRegister');
+                document.getElementById('register-confirm-password-error').style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    // 注册成功，切换到登录表单
+                    switchTab('login');
+                    alert(i18n.t('registerSuccess'));
+                } else {
+                    // 显示错误信息
+                    document.getElementById('register-username-error').textContent = data.message;
+                    document.getElementById('register-username-error').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

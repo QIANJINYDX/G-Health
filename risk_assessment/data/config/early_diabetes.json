@@ -1,0 +1,153 @@
+{
+    "data_path": "risk_assessment/data/csvfile/early_diabetes_dataset.csv",
+    "model_name": "early_diabetes",
+    "model_name_en": "Early Diabetes",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/early_diabetes",
+    "result_path": "risk_assessment/results/early_diabetes",
+    "target_column": "class",
+    "target_mapping_draw": {
+        "0": "非糖尿病",
+        "1": "糖尿病"
+    },
+    "target_mapping_draw_en": {
+        "0": "Non-Diabetes",
+        "1": "Diabetes"
+    },
+    "feature_columns": {
+        "class": {
+            "description": "是否患有糖尿病（1=是，0=否）",
+            "description_en": "Do you have diabetes? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "age": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "gender": {
+            "description": "性别（Male/Female）",
+            "description_en": "Gender (Male/Female)",
+            "type": "categorical",
+            "values": ["Female", "Male"],
+            "values_en": ["Female", "Male"],
+            "mapping": {"Female": 0, "Male": 1}
+        },
+        "polyuria": {
+            "description": "多尿症状（1=有，0=无）",
+            "description_en": "Polyuria symptom (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "polydipsia": {
+            "description": "多饮症状（1=有，0=无）",
+            "description_en": "Polydipsia symptom (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "sudden_weight_loss": {
+            "description": "突然体重减轻（1=有，0=无）",
+            "description_en": "Sudden weight loss (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "weakness": {
+            "description": "虚弱感（1=有，0=无）",
+            "description_en": "Weakness (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "polyphagia": {
+            "description": "多食症状（1=有，0=无）",
+            "description_en": "Polyphagia symptom (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "genital_thrush": {
+            "description": "生殖器念珠菌感染（1=有，0=无）",
+            "description_en": "Genital thrush (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "visual_blurring": {
+            "description": "视力模糊（1=有，0=无）",
+            "description_en": "Visual blurring (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "itching": {
+            "description": "瘙痒感（1=有，0=无）",
+            "description_en": "Itching (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "irritability": {
+            "description": "易怒（1=有，0=无）",
+            "description_en": "Irritability (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "delayed_healing": {
+            "description": "伤口愈合慢（1=有，0=无）",
+            "description_en": "Delayed healing (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "partial_paresis": {
+            "description": "局部麻痹（1=有，0=无）",
+            "description_en": "Partial paresis (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "muscle_stiffness": {
+            "description": "肌肉僵硬（1=有，0=无）",
+            "description_en": "Muscle stiffness (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "alopecia": {
+            "description": "脱发（1=有，0=无）",
+            "description_en": "Alopecia (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        },
+        "obesity": {
+            "description": "肥胖（1=有，0=无）",
+            "description_en": "Obesity (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["无", "有"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"无": 0, "有": 1}
+        }
+    }
+}

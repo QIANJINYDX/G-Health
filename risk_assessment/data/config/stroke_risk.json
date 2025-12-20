@@ -1,0 +1,167 @@
+{
+    "data_path": "risk_assessment/data/csvfile/stroke_risk_dataset.csv",
+    "model_name": "stroke_risk",
+    "model_name_en": "Stroke Risk",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/stroke_risk",
+    "result_path": "risk_assessment/results/stroke_risk",
+    "target_column": "at_risk",
+    "target_mapping_draw": {
+        "0": "无风险",
+        "1": "有风险"
+    },
+    "target_mapping_draw_en": {
+        "0": "Not at Risk",
+        "1": "At Risk"
+    },
+    "feature_columns": {
+        "at_risk": {
+            "description": "是否被标记为中风高风险（1=是，0=否，分类目标）",
+            "description_en": "Are you marked as high risk for stroke? (1=Yes, 0=No, classification target)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "age": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "gender": {
+            "description": "性别（Male / Female）",
+            "description_en": "Gender (Male/Female)",
+            "type": "categorical",
+            "values": ["Female", "Male"],
+            "values_en": ["Female", "Male"],
+            "mapping": {"Female": 0, "Male": 1}
+        },
+        "chest_pain": {
+            "description": "是否有胸痛症状（1=是，0=否）",
+            "description_en": "Do you have chest pain symptoms? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "high_blood_pressure": {
+            "description": "是否患有高血压（1=是，0=否）",
+            "description_en": "Do you have high blood pressure? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "irregular_heartbeat": {
+            "description": "心律不齐（1=是，0=否）",
+            "description_en": "Irregular heartbeat (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "shortness_of_breath": {
+            "description": "呼吸急促（1=是，0=否）",
+            "description_en": "Shortness of breath (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "fatigue_weakness": {
+            "description": "疲劳/乏力（1=是，0=否）",
+            "description_en": "Fatigue/weakness (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "dizziness": {
+            "description": "头晕（1=是，0=否）",
+            "description_en": "Dizziness (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "swelling_edema": {
+            "description": "水肿（1=是，0=否）",
+            "description_en": "Swelling/edema (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "neck_jaw_pain": {
+            "description": "颈部/下颌疼痛（1=是，0=否）",
+            "description_en": "Neck/jaw pain (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "excessive_sweating": {
+            "description": "出汗过多（1=是，0=否）",
+            "description_en": "Excessive sweating (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "persistent_cough": {
+            "description": "持续咳嗽（1=是，0=否）",
+            "description_en": "Persistent cough (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "nausea_vomiting": {
+            "description": "恶心呕吐（1=是，0=否）",
+            "description_en": "Nausea/vomiting (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "chest_discomfort": {
+            "description": "胸部不适（1=是，0=否）",
+            "description_en": "Chest discomfort (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "cold_hands_feet": {
+            "description": "手脚冰冷（1=是，0=否）",
+            "description_en": "Cold hands/feet (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "snoring_sleep_apnea": {
+            "description": "打鼾或睡眠呼吸暂停（1=是，0=否）",
+            "description_en": "Snoring or sleep apnea (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "anxiety_doom": {
+            "description": "感到焦虑/灾难感（1=是，0=否）",
+            "description_en": "Feeling anxious/doom (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "stroke_risk_percentage": {
+            "description": "系统评估的中风风险百分比",
+            "description_en": "System-assessed stroke risk percentage",
+            "type": "numerical",
+            "values": ["%"]
+        }
+    }
+}

@@ -1,0 +1,96 @@
+{
+    "data_path": "risk_assessment/data/csvfile/heart_risk_dataset.csv",
+    "model_name": "heart_risk",
+    "model_name_en": "Heart Risk",
+    "model_type": "regression",
+    "model_path": "risk_assessment/models/heart_risk",
+    "result_path": "risk_assessment/results/heart_risk",
+    "target_column": "Risk",
+    "feature_columns": {
+        "isMale": {
+            "description": "是否为男性",
+            "description_en": "Are you male?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+              "否": 0,
+              "是": 1
+            }
+          },
+          "isBlack": {
+            "description": "是否为黑人",
+            "description_en": "Are you Black?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+              "否": 0,
+              "是": 1
+            }
+          },
+          "isSmoker": {
+            "description": "是否吸烟",
+            "description_en": "Do you smoke?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+              "否": 0,
+              "是": 1
+            }
+          },
+          "isDiabetic": {
+            "description": "是否患有糖尿病",
+            "description_en": "Do you have diabetes?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+              "否": 0,
+              "是": 1
+            }
+          },
+          "isHypertensive": {
+            "description": "是否患有高血压",
+            "description_en": "Do you have hypertension?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+              "否": 0,
+              "是": 1
+            }
+          },
+          "Age": {
+            "description": "年龄（岁）",
+            "description_en": "Age (years)",
+            "type": "numerical",
+            "values": ["岁"]
+          },
+          "Systolic": {
+            "description": "收缩压（mmHg）",
+            "description_en": "Systolic blood pressure (mmHg)",
+            "type": "numerical",
+            "values": ["mmHg"]
+          },
+          "Cholesterol": {
+            "description": "总胆固醇（mg/dL）",
+            "description_en": "Total cholesterol (mg/dL)",
+            "type": "numerical",
+            "values": ["mg/dL"]
+          },
+          "HDL": {
+            "description": "高密度脂蛋白（mg/dL）",
+            "description_en": "High-density lipoprotein (mg/dL)",
+            "type": "numerical",
+            "values": ["mg/dL"]
+          },
+          "Risk": {
+            "description": "10年内患心血管疾病的预测风险值（%）",
+            "description_en": "Predicted risk of cardiovascular disease within 10 years (%)",
+            "type": "numerical",
+            "values": ["%"]
+          }
+        }
+}

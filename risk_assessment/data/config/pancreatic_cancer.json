@@ -1,0 +1,287 @@
+{
+    "data_path": "risk_assessment/data/csvfile/pancreatic_cancer.csv",
+    "model_name": "pancreatic_cancer",
+    "model_name_en": "Pancreatic Cancer",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/pancreatic_cancer",
+    "result_path": "risk_assessment/results/pancreatic_cancer",
+    "target_column": "Survival_Status",
+    "target_mapping_draw": {
+        "0": "未生存",
+        "1": "生存"
+    },
+    "target_mapping_draw_en": {
+        "0": "Not Survived",
+        "1": "Survived"
+    },
+    "feature_columns": {
+        "Country": {
+            "description": "国家",
+            "description_en": "Country",
+            "type": "categorical",
+            "values": ["Australia", "Brazil", "Canada", "China", "Germany", "India", "South Africa", "United Kingdom", "United States"],
+            "values_en": ["Australia", "Brazil", "Canada", "China", "Germany", "India", "South Africa", "United Kingdom", "United States"],
+            "mapping": {
+                "Australia": 0,
+                "Brazil": 1,
+                "Canada": 2,
+                "China": 3,
+                "Germany": 4,
+                "India": 5,
+                "South Africa": 6,
+                "United Kingdom": 7,
+                "United States": 8
+            }
+        },
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["Age"]
+        },
+        "Gender": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["Female", "Male"],
+            "values_en": ["Female", "Male"],
+            "mapping": {
+                "Female": 0,
+                "Male": 1
+            }
+        },
+        "Smoking_History": {
+            "description": "吸烟史",
+            "description_en": "Smoking history",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Obesity": {
+            "description": "肥胖",
+            "description_en": "Obesity",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Diabetes": {
+            "description": "糖尿病",
+            "description_en": "Diabetes",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Chronic_Pancreatitis": {
+            "description": "慢性胰腺炎",
+            "description_en": "Chronic pancreatitis",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Family_History": {
+            "description": "家族史",
+            "description_en": "Family history",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Hereditary_Condition": {
+            "description": "遗传性疾病",
+            "description_en": "Hereditary condition",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Jaundice": {
+            "description": "黄疸",
+            "description_en": "Jaundice",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Abdominal_Discomfort": {
+            "description": "腹部不适",
+            "description_en": "Abdominal discomfort",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Back_Pain": {
+            "description": "背痛",
+            "description_en": "Back pain",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Weight_Loss": {
+            "description": "体重减轻",
+            "description_en": "Weight loss",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Development_of_Type2_Diabetes": {
+            "description": "2型糖尿病发展",
+            "description_en": "Development of Type 2 diabetes",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Stage_at_Diagnosis": {
+            "description": "诊断时分期",
+            "description_en": "Stage at diagnosis",
+            "type": "categorical",
+            "values": ["Stage I", "Stage II", "Stage III", "Stage IV"],
+            "values_en": ["Stage I", "Stage II", "Stage III", "Stage IV"],
+            "mapping": {
+                "Stage I": 0,
+                "Stage II": 1,
+                "Stage III": 2,
+                "Stage IV": 3
+            }
+        },
+        "Survival_Time_Months": {
+            "description": "生存时间（月）",
+            "description_en": "Survival time (months)",
+            "type": "numerical",
+            "values": ["Survival_Time_Months"]
+        },
+        "Treatment_Type": {
+            "description": "治疗类型",
+            "description_en": "Treatment type",
+            "type": "categorical",
+            "values": ["Chemotherapy", "Radiation", "Surgery"],
+            "values_en": ["Chemotherapy", "Radiation", "Surgery"],
+            "mapping": {
+                "Chemotherapy": 0,
+                "Radiation": 1,
+                "Surgery": 2
+            }
+        },
+        "Survival_Status": {
+            "description": "生存状态",
+            "description_en": "Survival status",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Alcohol_Consumption": {
+            "description": "饮酒",
+            "description_en": "Alcohol consumption",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Physical_Activity_Level": {
+            "description": "体育活动水平",
+            "description_en": "Physical activity level",
+            "type": "categorical",
+            "values": ["High", "Low", "Medium"],
+            "values_en": ["High", "Low", "Medium"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Medium": 2
+            }
+        },
+        "Diet_Processed_Food": {
+            "description": "加工食品摄入",
+            "description_en": "Processed food intake",
+            "type": "categorical",
+            "values": ["High", "Low", "Medium"],
+            "values_en": ["High", "Low", "Medium"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Medium": 2
+            }
+        },
+        "Access_to_Healthcare": {
+            "description": "医疗可及性",
+            "description_en": "Access to healthcare",
+            "type": "categorical",
+            "values": ["High", "Low", "Medium"],
+            "values_en": ["High", "Low", "Medium"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Medium": 2
+            }
+        },
+        "Urban_vs_Rural": {
+            "description": "城乡分类",
+            "description_en": "Urban vs rural classification",
+            "type": "categorical",
+            "values": ["Rural", "Urban"],
+            "values_en": ["Rural", "Urban"],
+            "mapping": {
+                "Rural": 0,
+                "Urban": 1
+            }
+        },
+        "Economic_Status": {
+            "description": "经济状况",
+            "description_en": "Economic status",
+            "type": "categorical",
+            "values": ["High", "Low", "Middle"],
+            "values_en": ["High", "Low", "Middle"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Middle": 2
+            }
+        }
+    }
+}

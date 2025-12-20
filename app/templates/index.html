@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="appName">济世 - 您的体检智能助手</title>
+    <script src="/static/js/i18n.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            padding: 3rem 0;
+            background: linear-gradient(135deg, #00a8ff, #0097e6);
+            color: white;
+            margin-bottom: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 1.5rem;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-card h3 {
+            color: #2d3436;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .feature-card p {
+            color: #636e72;
+        }
+
+        .cta-button {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: #00a8ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .cta-button:hover {
+            background: #0097e6;
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 168, 255, 0.3);
+        }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 8px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        .lang-switcher {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .lang-switcher button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e5e5e5;
+            background: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .lang-switcher button:hover {
+            background: #f5f5f5;
+            border-color: #00a8ff;
+        }
+
+        .lang-switcher button.active {
+            background: #00a8ff;
+            color: #ffffff;
+            border-color: #00a8ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="lang-switcher">
+        <button id="lang-zh" class="active" onclick="i18n.switchLanguage('zh')">中文</button>
+        <button id="lang-en" onclick="i18n.switchLanguage('en')">English</button>
+    </div>
+    <div class="container">
+        <header class="header">
+            <img src="/static/images/logo.png" alt="济世 Logo" class="logo">
+            <h1 data-i18n="appName">济世</h1>
+            <p data-i18n="appSubtitle">您的体检智能助手</p>
+        </header>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>
+                    <svg class="feature-icon" viewBox="0 0 24 24">
+                        <path d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                    </svg>
+                    <span data-i18n="smartAnalysis">智能分析</span>
+                </h3>
+                <p data-i18n="smartAnalysisDesc">运用先进的AI技术，为您提供专业的体检报告解读和健康建议。</p>
+            </div>
+            <div class="feature-card">
+                <h3>
+                    <svg class="feature-icon" viewBox="0 0 24 24">
+                        <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span data-i18n="personalizedAdvice">个性化建议</span>
+                </h3>
+                <p data-i18n="personalizedAdviceDesc">根据您的体检数据，提供量身定制的健康管理方案。</p>
+            </div>
+            <div class="feature-card">
+                <h3>
+                    <svg class="feature-icon" viewBox="0 0 24 24">
+                        <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                    </svg>
+                    <span data-i18n="realtimeConsultation">实时咨询</span>
+                </h3>
+                <p data-i18n="realtimeConsultationDesc">随时随地获取专业的健康咨询服务。</p>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 3rem;">
+            <a href="/api/v1/chat" class="cta-button" data-i18n="getStarted">开始使用</a>
+        </div>
+    </div>
+    <script>
+        // 更新语言切换按钮状态
+        function updateLangButtons() {
+            const currentLang = i18n.currentLang;
+            document.getElementById('lang-zh').classList.toggle('active', currentLang === 'zh');
+            document.getElementById('lang-en').classList.toggle('active', currentLang === 'en');
+        }
+
+        // 监听语言切换
+        const originalSwitchLanguage = i18n.switchLanguage;
+        i18n.switchLanguage = function(lang) {
+            originalSwitchLanguage.call(this, lang);
+            updateLangButtons();
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLangButtons();
+        });
+    </script>
+</body>
+</html>

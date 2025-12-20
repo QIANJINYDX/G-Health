@@ -1,0 +1,209 @@
+{
+    "data_path": "risk_assessment/data/csvfile/hepatitis_dataset.csv",
+    "model_name": "hepatitis",
+    "model_name_en": "Hepatitis",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/hepatitis",
+    "result_path": "risk_assessment/results/hepatitis",
+    "target_column": "Class",
+    "target_mapping_draw": {
+        "0": "无肝病",
+        "1": "有肝病"
+    },
+    "target_mapping_draw_en": {
+        "0": "Non-Hepatitis",
+        "1": "Hepatitis"
+    },
+    "feature_columns": {
+        "Class": {
+            "description": "类别标签（0=无肝病，1=有肝病）",
+            "description_en": "Class label (0=No liver disease, 1=Liver disease)",
+            "type": "categorical",
+            "values": ["无肝病", "有肝病"],
+            "values_en": ["No liver disease", "Liver disease"],
+            "mapping": {
+                "无肝病": 0,
+                "有肝病": 1
+            }
+        },
+        "AGE": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["年龄"]
+            },
+        "SEX": {
+        "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["男", "女"],
+            "values_en": ["Male", "Female"],
+            "mapping": {
+                "男": 1,
+                "女": 2
+            }
+        },
+        "STEROID": {
+        "description": "是否使用类固醇治疗",
+            "description_en": "Are you using steroid treatment?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "ANTIVIRALS": {
+        "description": "是否使用抗病毒药物",
+            "description_en": "Are you using antiviral medication?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "FATIGUE": {
+        "description": "是否感到疲劳",
+            "description_en": "Do you feel fatigue?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "MALAISE": {
+        "description": "是否感到不适",
+            "description_en": "Do you feel malaise?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "ANOREXIA": {
+        "description": "是否食欲减退",
+            "description_en": "Do you have anorexia?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "LIVER_BIG": {
+        "description": "肝脏是否肿大",
+            "description_en": "Is your liver enlarged?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "LIVER_FIRM": {
+        "description": "肝脏是否变硬",
+            "description_en": "Is your liver firm?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "SPLEEN_PALPABLE": {
+        "description": "脾是否可触及",
+            "description_en": "Is your spleen palpable?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "SPIDERS": {
+        "description": "是否出现蜘蛛痣",
+            "description_en": "Do you have spider nevi?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "ASCITES": {
+        "description": "是否有腹水",
+            "description_en": "Do you have ascites?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "VARICES": {
+        "description": "是否有静脉曲张",
+            "description_en": "Do you have varices?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        },
+        "BILIRUBIN": {
+            "description": "总胆红素水平",
+            "description_en": "Total bilirubin level",
+            "type": "numerical",
+            "values": ["mg/dL"]
+        },
+        "ALK_PHOSPHATE": {
+            "description": "碱性磷酸酶水平",
+            "description_en": "Alkaline phosphatase level",
+            "type": "numerical",
+            "values": ["U/L"]
+        },
+        "SGOT": {
+            "description": "谷草转氨酶水平（AST）",
+            "description_en": "SGOT (AST) level",
+            "type": "numerical",
+            "values": ["U/L"]
+        },
+        "ALBUMIN": {
+            "description": "白蛋白浓度",
+            "description_en": "Albumin concentration",
+            "type": "numerical",
+            "values": ["g/dL"]
+        },
+        "PROTIME": {
+            "description": "凝血酶原时间",
+            "description_en": "Prothrombin time",
+            "type": "numerical",
+            "values": ["秒"]
+        },
+        "HISTOLOGY": {
+            "description": "是否有肝组织病变",
+            "description_en": "Do you have liver histology changes?",
+            "type": "categorical",
+            "values": ["是", "否"],
+            "values_en": ["Yes", "No"],
+            "mapping": {
+                "是": 1,
+                "否": 2
+            }
+        }
+  }
+}

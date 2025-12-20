@@ -1,0 +1,253 @@
+{
+    "data_path": "risk_assessment/data/csvfile/prostate_cancer.csv",
+    "model_name": "prostate_cancer",
+    "model_name_en": "Prostate Cancer",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/prostate_cancer",
+    "result_path": "risk_assessment/results/prostate_cancer",
+    "target_column": "Early_Detection",
+    "target_mapping_draw": {
+        "0": "不需要早期检测",
+        "1": "需要早期检测"
+    },
+    "target_mapping_draw_en": {
+        "0": "Early Detection Not Needed",
+        "1": "Early Detection Needed"
+    },
+    "feature_columns": {
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["Age"]
+        },
+        "Family_History": {
+            "description": "家族史",
+            "description_en": "Family history",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Race_African_Ancestry": {
+            "description": "非裔血统",
+            "description_en": "African ancestry",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "PSA_Level": {
+            "description": "PSA水平",
+            "description_en": "PSA level",
+            "type": "numerical",
+            "values": ["PSA_Level"]
+        },
+        "DRE_Result": {
+            "description": "直肠指检结果",
+            "description_en": "DRE result",
+            "type": "categorical",
+            "values": ["Abnormal", "Normal"],
+            "values_en": ["Abnormal", "Normal"],
+            "mapping": {
+                "Abnormal": 0,
+                "Normal": 1
+            }
+        },
+        "Biopsy_Result": {
+            "description": "活检结果",
+            "description_en": "Biopsy result",
+            "type": "categorical",
+            "values": ["Benign", "Malignant"],
+            "values_en": ["Benign", "Malignant"],
+            "mapping": {
+                "Benign": 0,
+                "Malignant": 1
+            }
+        },
+        "Difficulty_Urinating": {
+            "description": "排尿困难",
+            "description_en": "Difficulty urinating",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Weak_Urine_Flow": {
+            "description": "尿流减弱",
+            "description_en": "Weak urine flow",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Blood_in_Urine": {
+            "description": "血尿",
+            "description_en": "Blood in urine",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Pelvic_Pain": {
+            "description": "盆腔疼痛",
+            "description_en": "Pelvic pain",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Back_Pain": {
+            "description": "背痛",
+            "description_en": "Back pain",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Erectile_Dysfunction": {
+            "description": "勃起功能障碍",
+            "description_en": "Erectile dysfunction",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Exercise_Regularly": {
+            "description": "规律运动",
+            "description_en": "Exercise regularly",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Healthy_Diet": {
+            "description": "健康饮食",
+            "description_en": "Healthy diet",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "BMI": {
+            "description": "身体质量指数",
+            "description_en": "Body Mass Index",
+            "type": "numerical",
+            "values": ["BMI"]
+        },
+        "Smoking_History": {
+            "description": "吸烟史",
+            "description_en": "Smoking history",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Alcohol_Consumption": {
+            "description": "饮酒量",
+            "description_en": "Alcohol consumption",
+            "type": "categorical",
+            "values": ["High", "Low", "Moderate"],
+            "values_en": ["High", "Low", "Moderate"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Moderate": 2
+            }
+        },
+        "Hypertension": {
+            "description": "高血压",
+            "description_en": "Hypertension",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Diabetes": {
+            "description": "糖尿病",
+            "description_en": "Diabetes",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Cholesterol_Level": {
+            "description": "胆固醇水平",
+            "description_en": "Cholesterol level",
+            "type": "categorical",
+            "values": ["High", "Normal"],
+            "values_en": ["High", "Normal"],
+            "mapping": {
+                "High": 0,
+                "Normal": 1
+            }
+        },
+        "Prostate_Volume": {
+            "description": "前列腺体积",
+            "description_en": "Prostate volume",
+            "type": "numerical",
+            "values": ["Prostate_Volume"]
+        },
+        "Previous_Cancer_History": {
+            "description": "既往癌症史",
+            "description_en": "Previous cancer history",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Early_Detection": {
+            "description": "早期检测",
+            "description_en": "Early detection",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        }
+    }
+}

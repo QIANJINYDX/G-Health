@@ -1,0 +1,69 @@
+{
+    "data_path": "risk_assessment/data/csvfile/maternal_health_dataset.csv",
+    "model_name": "maternal_health",
+    "model_name_en": "Maternal Health",
+    "model_type": "multiclass",
+    "model_path": "risk_assessment/models/maternal_health",
+    "result_path": "risk_assessment/results/maternal_health",
+    "target_column": "RiskLevel",
+    "target_mapping_draw": {
+        "0": "低风险",
+        "1": "中风险",
+        "2": "高风险"
+    },
+    "target_mapping_draw_en": {
+        "0": "Low Risk",
+        "1": "Mid Risk",
+        "2": "High Risk"
+        },
+    "feature_columns": {
+        "Age": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["年龄"]
+            },
+        "SystolicBP": {
+            "description": "收缩压（单位：mmHg）",
+            "description_en": "Systolic blood pressure (unit: mmHg)",
+            "type": "numerical",
+            "values": ["收缩压"]
+            },
+        "DiastolicBP": {
+            "description": "舒张压（单位：mmHg）",
+            "description_en": "Diastolic blood pressure (unit: mmHg)",
+            "type": "numerical",
+            "values": ["舒张压"]
+            },
+        "BS": {
+            "description": "血糖水平（可能单位为 mmol/L 或 mg/dL）",
+            "description_en": "Blood sugar level (unit may be mmol/L or mg/dL)",
+            "type": "numerical",
+            "values": ["血糖水平"]
+            },
+        "BodyTemp": {
+            "description": "体温（单位：°F）",
+            "description_en": "Body temperature (unit: °F)",
+            "type": "numerical",
+            "values": ["体温"]
+            },
+        "HeartRate": {
+            "description": "心率（单位：次/分钟）",
+            "description_en": "Heart rate (unit: beats/minute)",
+            "type": "numerical",
+            "values": ["心率"]
+            },
+        "RiskLevel": {
+            "description": "健康风险等级（high risk / mid risk / low risk）",
+            "description_en": "Health risk level (high risk/mid risk/low risk)",
+            "type": "categorical",
+            "values": ["low risk", "mid risk", "high risk"],
+            "values_en": ["Low Risk", "Mid Risk", "High Risk"],
+            "mapping": {
+                "low risk": 0,
+                "mid risk": 1,
+                "high risk": 2
+            }
+        }
+  }
+}

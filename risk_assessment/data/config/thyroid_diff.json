@@ -1,0 +1,225 @@
+{
+    "data_path": "risk_assessment/data/csvfile/thyroid_diff.csv",
+    "model_name": "thyroid_diff",
+    "model_name_en": "Thyroid Cancer",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/thyroid_diff",
+    "result_path": "risk_assessment/results/thyroid_diff",
+    "target_column": "Recurred",
+    "target_mapping_draw": {
+        "0": "未复发",
+        "1": "复发"
+    },
+    "target_mapping_draw_en": {
+        "0": "Not Recurred",
+        "1": "Recurred"
+    },
+    "feature_columns": {
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["Age"]
+        },
+        "Gender": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["F", "M"],
+            "values_en": ["Female", "Male"],
+            "mapping": {
+                "F": 0,
+                "M": 1
+            }
+        },
+        "Smoking": {
+            "description": "是否吸烟",
+            "description_en": "Do you smoke?",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Hx Smoking": {
+            "description": "是否有吸烟史",
+            "description_en": "Do you have a history of smoking?",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Hx Radiothreapy": {
+            "description": "是否有放疗史",
+            "description_en": "Do you have a history of radiotherapy?",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Thyroid Function": {
+            "description": "甲状腺功能",
+            "description_en": "Thyroid function",
+            "type": "categorical",
+            "values": ["Clinical Hyperthyroidism", "Clinical Hypothyroidism", "Euthyroid", "Subclinical Hyperthyroidism", "Subclinical Hypothyroidism"],
+            "values_en": ["Clinical Hyperthyroidism", "Clinical Hypothyroidism", "Euthyroid", "Subclinical Hyperthyroidism", "Subclinical Hypothyroidism"],
+            "mapping": {
+                "Clinical Hyperthyroidism": 0,
+                "Clinical Hypothyroidism": 1,
+                "Euthyroid": 2,
+                "Subclinical Hyperthyroidism": 3,
+                "Subclinical Hypothyroidism": 4
+            }
+        },
+        "Physical Examination": {
+            "description": "体格检查",
+            "description_en": "Physical examination",
+            "type": "categorical",
+            "values": ["Diffuse goiter", "Multinodular goiter", "Normal", "Single nodular goiter-left", "Single nodular goiter-right"],
+            "values_en": ["Diffuse goiter", "Multinodular goiter", "Normal", "Single nodular goiter-left", "Single nodular goiter-right"],
+            "mapping": {
+                "Diffuse goiter": 0,
+                "Multinodular goiter": 1,
+                "Normal": 2,
+                "Single nodular goiter-left": 3,
+                "Single nodular goiter-right": 4
+            }
+        },
+        "Adenopathy": {
+            "description": "淋巴结肿大",
+            "description_en": "Adenopathy",
+            "type": "categorical",
+            "values": ["Bilateral", "Extensive", "Left", "No", "Posterior", "Right"],
+            "values_en": ["Bilateral", "Extensive", "Left", "No", "Posterior", "Right"],
+            "mapping": {
+                "Bilateral": 0,
+                "Extensive": 1,
+                "Left": 2,
+                "No": 3,
+                "Posterior": 4,
+                "Right": 5
+            }
+        },
+        "Pathology": {
+            "description": "病理类型",
+            "description_en": "Pathology type",
+            "type": "categorical",
+            "values": ["Follicular", "Hurthel cell", "Micropapillary", "Papillary"],
+            "values_en": ["Follicular", "Hurthel cell", "Micropapillary", "Papillary"],
+            "mapping": {
+                "Follicular": 0,
+                "Hurthel cell": 1,
+                "Micropapillary": 2,
+                "Papillary": 3
+            }
+        },
+        "Focality": {
+            "description": "病灶数量",
+            "description_en": "Focality",
+            "type": "categorical",
+            "values": ["Multi-Focal", "Uni-Focal"],
+            "values_en": ["Multi-Focal", "Uni-Focal"],
+            "mapping": {
+                "Multi-Focal": 0,
+                "Uni-Focal": 1
+            }
+        },
+        "Risk": {
+            "description": "风险等级",
+            "description_en": "Risk level",
+            "type": "categorical",
+            "values": ["High", "Intermediate", "Low"],
+            "values_en": ["High", "Intermediate", "Low"],
+            "mapping": {
+                "High": 0,
+                "Intermediate": 1,
+                "Low": 2
+            }
+        },
+        "T": {
+            "description": "T分期",
+            "description_en": "T stage",
+            "type": "categorical",
+            "values": ["T1a", "T1b", "T2", "T3a", "T3b", "T4a", "T4b"],
+            "values_en": ["T1a", "T1b", "T2", "T3a", "T3b", "T4a", "T4b"],
+            "mapping": {
+                "T1a": 0,
+                "T1b": 1,
+                "T2": 2,
+                "T3a": 3,
+                "T3b": 4,
+                "T4a": 5,
+                "T4b": 6
+            }
+        },
+        "N": {
+            "description": "N分期",
+            "description_en": "N stage",
+            "type": "categorical",
+            "values": ["N0", "N1a", "N1b"],
+            "values_en": ["N0", "N1a", "N1b"],
+            "mapping": {
+                "N0": 0,
+                "N1a": 1,
+                "N1b": 2
+            }
+        },
+        "M": {
+            "description": "M分期",
+            "description_en": "M stage",
+            "type": "categorical",
+            "values": ["M0", "M1"],
+            "values_en": ["M0", "M1"],
+            "mapping": {
+                "M0": 0,
+                "M1": 1
+            }
+        },
+        "Stage": {
+            "description": "临床分期",
+            "description_en": "Clinical stage",
+            "type": "categorical",
+            "values": ["I", "II", "III", "IVA", "IVB"],
+            "values_en": ["I", "II", "III", "IVA", "IVB"],
+            "mapping": {
+                "I": 0,
+                "II": 1,
+                "III": 2,
+                "IVA": 3,
+                "IVB": 4
+            }
+        },
+        "Response": {
+            "description": "治疗反应",
+            "description_en": "Treatment response",
+            "type": "categorical",
+            "values": ["Biochemical Incomplete", "Excellent", "Indeterminate", "Structural Incomplete"],
+            "values_en": ["Biochemical Incomplete", "Excellent", "Indeterminate", "Structural Incomplete"],
+            "mapping": {
+                "Biochemical Incomplete": 0,
+                "Excellent": 1,
+                "Indeterminate": 2,
+                "Structural Incomplete": 3
+            }
+        },
+        "Recurred": {
+            "description": "是否复发",
+            "description_en": "Has it recurred?",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        }
+    }
+}

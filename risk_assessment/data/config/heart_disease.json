@@ -1,0 +1,131 @@
+{
+    "data_path": "risk_assessment/data/csvfile/heart_disease_dataset.csv",
+    "model_name": "heart_disease",
+    "model_name_en": "Heart Disease",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/heart_disease",
+    "result_path": "risk_assessment/results/heart_disease",
+    "target_column": "Heart_stroke",
+    "target_mapping_draw": {
+        "0": "否",
+        "1": "是"
+    },
+    "target_mapping_draw_en": {
+        "0": "No",
+        "1": "Yes"
+    },
+    "feature_columns": {
+        "Heart_stroke": {
+            "description": "是否患有心脏病或中风（yes / No，分类目标）",
+            "description_en": "Do you have heart disease or stroke? (yes/No, classification target)",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"No": 0, "yes": 1}
+        },
+        "Gender": {
+            "description": "性别（Male / Female）",
+            "description_en": "Gender (Male/Female)",
+            "type": "categorical",
+            "values": ["Female", "Male"],
+            "values_en": ["Female", "Male"],
+            "mapping": {"Female": 0, "Male": 1}
+        },
+        "age": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "education": {
+            "description": "教育水平（graduate、primaryschool 等）",
+            "description_en": "Education level (graduate, primaryschool, etc.)",
+            "type": "categorical",
+            "values": ["graduate", "postgraduate", "primaryschool", "uneducated"],
+            "values_en": ["Graduate", "Postgraduate", "Primary School", "Uneducated"],
+            "mapping": {"graduate": 0, "postgraduate": 1, "primaryschool": 2, "uneducated": 3}
+        },
+        "currentSmoker": {
+            "description": "是否当前吸烟（1=是，0=否）",
+            "description_en": "Are you currently a smoker? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "cigsPerDay": {
+            "description": "每日吸烟量（支）",
+            "description_en": "Cigarettes per day",
+            "type": "numerical",
+            "values": ["支"]
+        },
+        "BPMeds": {
+            "description": "是否正在服用降压药物（1=是，0=否）",
+            "description_en": "Are you taking blood pressure medication? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "prevalentStroke": {
+            "description": "是否有中风史（yes / no）",
+            "description_en": "Do you have a history of stroke? (yes/no)",
+            "type": "categorical",
+            "values": ["no", "yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"no": 0, "yes": 1}
+        },
+        "prevalentHyp": {
+            "description": "是否有高血压（1=是，0=否）",
+            "description_en": "Do you have hypertension? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "diabetes": {
+            "description": "是否患糖尿病（1=是，0=否）",
+            "description_en": "Do you have diabetes? (1=Yes, 0=No)",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {"否": 0, "是": 1}
+        },
+        "totChol": {
+            "description": "总胆固醇（mg/dL）",
+            "description_en": "Total cholesterol (mg/dL)",
+            "type": "numerical",
+            "values": ["mg/dL"]
+        },
+        "sysBP": {
+            "description": "收缩压（mmHg）",
+            "description_en": "Systolic blood pressure (mmHg)",
+            "type": "numerical",
+            "values": ["mmHg"]
+        },
+        "diaBP": {
+            "description": "舒张压（mmHg）",
+            "description_en": "Diastolic blood pressure (mmHg)",
+            "type": "numerical",
+            "values": ["mmHg"]
+        },
+        "BMI": {
+            "description": "体质指数（体重/身高²）",
+            "description_en": "Body Mass Index (weight/height²)",
+            "type": "numerical",
+            "values": ["kg/m^2"]
+        },
+        "heartRate": {
+            "description": "心率（次/分钟）",
+            "description_en": "Heart rate (beats/minute)",
+            "type": "numerical",
+            "values": ["次/分钟"]
+        },
+        "glucose": {
+            "description": "血糖（mg/dL）",
+            "description_en": "Blood glucose (mg/dL)",
+            "type": "numerical",
+            "values": ["mg/dL"]
+        }
+    }
+}

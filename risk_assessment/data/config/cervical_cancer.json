@@ -1,0 +1,355 @@
+{
+    "data_path": "risk_assessment/data/csvfile/cervical_cancer.csv",
+    "model_name": "cervical_cancer",
+    "model_name_en": "Cervical Cancer",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/cervical_cancer",
+    "result_path": "risk_assessment/results/cervical_cancer",
+    "target_column": "Biopsy",
+    "target_mapping_draw": {
+        "0": "阴性",
+        "1": "阳性"
+    },
+    "target_mapping_draw_en": {
+        "0": "Negative",
+        "1": "Positive"
+    },
+    "feature_columns": {
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["Age"]
+        },
+        "Number of sexual partners": {
+            "description": "性伴侣数量",
+            "description_en": "Number of sexual partners",
+            "type": "numerical",
+            "values": ["Number of sexual partners"]
+        },
+        "First sexual intercourse": {
+            "description": "首次性行为年龄",
+            "description_en": "Age at first sexual intercourse",
+            "type": "numerical",
+            "values": ["First sexual intercourse"]
+        },
+        "Num of pregnancies": {
+            "description": "怀孕次数",
+            "description_en": "Number of pregnancies",
+            "type": "numerical",
+            "values": ["Num of pregnancies"]
+        },
+        "Smokes": {
+            "description": "是否吸烟",
+            "description_en": "Do you smoke?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Smokes (years)": {
+            "description": "吸烟年数",
+            "description_en": "Years of smoking",
+            "type": "numerical",
+            "values": ["Smokes (years)"]
+        },
+        "Smokes (packs/year)": {
+            "description": "每年吸烟包数",
+            "description_en": "Packs per year",
+            "type": "numerical",
+            "values": ["Smokes (packs/year)"]
+        },
+        "Hormonal Contraceptives": {
+            "description": "是否使用激素避孕药",
+            "description_en": "Do you use hormonal contraceptives?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Hormonal Contraceptives (years)": {
+            "description": "使用激素避孕药年数",
+            "description_en": "Years of hormonal contraceptive use",
+            "type": "numerical",
+            "values": ["Hormonal Contraceptives (years)"]
+        },
+        "IUD": {
+            "description": "是否使用宫内节育器",
+            "description_en": "Do you use IUD?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "IUD (years)": {
+            "description": "使用宫内节育器年数",
+            "description_en": "Years of IUD use",
+            "type": "numerical",
+            "values": ["IUD (years)"]
+        },
+        "STDs": {
+            "description": "是否患有性传播疾病",
+            "description_en": "Do you have STDs?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs (number)": {
+            "description": "性传播疾病数量",
+            "description_en": "Number of STDs",
+            "type": "numerical",
+            "values": ["STDs (number)"]
+        },
+        "STDs:condylomatosis": {
+            "description": "是否患有尖锐湿疣",
+            "description_en": "Do you have condylomatosis?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:cervical condylomatosis": {
+            "description": "是否患有宫颈尖锐湿疣",
+            "description_en": "Do you have cervical condylomatosis?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:vaginal condylomatosis": {
+            "description": "是否患有阴道尖锐湿疣",
+            "description_en": "Do you have vaginal condylomatosis?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:vulvo-perineal condylomatosis": {
+            "description": "是否患有外阴会阴尖锐湿疣",
+            "description_en": "Do you have vulvo-perineal condylomatosis?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:syphilis": {
+            "description": "是否患有梅毒",
+            "description_en": "Do you have syphilis?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:pelvic inflammatory disease": {
+            "description": "是否患有盆腔炎",
+            "description_en": "Do you have pelvic inflammatory disease?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:genital herpes": {
+            "description": "是否患有生殖器疱疹",
+            "description_en": "Do you have genital herpes?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:molluscum contagiosum": {
+            "description": "是否患有传染性软疣",
+            "description_en": "Do you have molluscum contagiosum?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:AIDS": {
+            "description": "是否患有艾滋病",
+            "description_en": "Do you have AIDS?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:HIV": {
+            "description": "是否感染HIV",
+            "description_en": "Do you have HIV?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:Hepatitis B": {
+            "description": "是否患有乙肝",
+            "description_en": "Do you have Hepatitis B?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs:HPV": {
+            "description": "是否感染HPV",
+            "description_en": "Do you have HPV?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "STDs: Number of diagnosis": {
+            "description": "性传播疾病诊断次数",
+            "description_en": "Number of STD diagnoses",
+            "type": "numerical",
+            "values": ["STDs: Number of diagnosis"]
+        },
+        "STDs: Time since first diagnosis": {
+            "description": "首次诊断至今时间",
+            "description_en": "Time since first diagnosis",
+            "type": "numerical",
+            "values": ["STDs: Time since first diagnosis"]
+        },
+        "STDs: Time since last diagnosis": {
+            "description": "最近诊断至今时间",
+            "description_en": "Time since last diagnosis",
+            "type": "numerical",
+            "values": ["STDs: Time since last diagnosis"]
+        },
+        "Dx:Cancer": {
+            "description": "是否确诊癌症",
+            "description_en": "Have you been diagnosed with cancer?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Dx:CIN": {
+            "description": "是否确诊宫颈上皮内瘤变",
+            "description_en": "Have you been diagnosed with CIN?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Dx:HPV": {
+            "description": "是否确诊HPV",
+            "description_en": "Have you been diagnosed with HPV?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Dx": {
+            "description": "是否确诊",
+            "description_en": "Have you been diagnosed?",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Hinselmann": {
+            "description": "Hinselmann检查结果",
+            "description_en": "Hinselmann test result",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["Negative", "Positive"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Schiller": {
+            "description": "Schiller检查结果",
+            "description_en": "Schiller test result",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["Negative", "Positive"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Citology": {
+            "description": "细胞学检查结果",
+            "description_en": "Cytology test result",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["Negative", "Positive"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        },
+        "Biopsy": {
+            "description": "活检结果",
+            "description_en": "Biopsy result",
+            "type": "categorical",
+            "values": ["0", "1"],
+            "values_en": ["Negative", "Positive"],
+            "mapping": {
+                "0": 0,
+                "1": 1
+            }
+        }
+    }
+}

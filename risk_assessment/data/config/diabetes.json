@@ -1,0 +1,270 @@
+{
+    "data_path": "risk_assessment/data/csvfile/diabetes_dataset.csv",
+    "model_name": "diabetes",
+    "model_name_en": "Diabetes",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/diabetes",
+    "result_path": "risk_assessment/results/diabetes",
+    "target_column": "Diabetes_binary",
+    "target_mapping_draw": {
+        "0": "非糖尿病",
+        "1": "糖尿病"
+    },
+    "target_mapping_draw_en": {
+        "0": "Non-Diabetic",
+        "1": "Diabetic"
+    },
+    "feature_columns": {
+        "Sex": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["女", "男"],
+            "values_en": ["Female", "Male"],
+            "mapping": {
+                "女": 0,
+                "男": 1
+            }
+        },
+        "Age": {
+            "description": "年龄组",
+            "description_en": "Age Group",
+            "type": "categorical",
+            "values": ["18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80岁以上"],
+            "values_en": ["18-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80 or older"],
+            "mapping": {
+                "18-24": 1,
+                "25-29": 2,
+                "30-34": 3,
+                "35-39": 4,
+                "40-44": 5,
+                "45-49": 6,
+                "50-54": 7,
+                "55-59": 8,
+                "60-64": 9,
+                "65-69": 10,
+                "70-74": 11,
+                "75-79": 12,
+                "80岁以上": 13
+            }
+        },
+        "BMI": {
+            "description": "身体质量指数(kg/m^2)",
+            "description_en": "Body Mass Index (kg/m^2)",
+            "type": "numerical",
+            "values": ["BMI"]
+        },
+        "HighBP": {
+            "description": "是否患有高血压",
+            "description_en": "Do you have high blood pressure?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "HighChol": {
+            "description": "是否高胆固醇",
+            "description_en": "Do you have high cholesterol?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "CholCheck": {
+            "description": "是否检查过胆固醇",
+            "description_en": "Have you had your cholesterol checked?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "Smoker": {
+            "description": "是否吸烟",
+            "description_en": "Do you smoke?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "Stroke": {
+            "description": "是否曾中风",
+            "description_en": "Have you ever had a stroke?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "HeartDiseaseorAttack": {
+            "description": "是否患心脏病或有心脏病发作历史",
+            "description_en": "Do you have heart disease or a history of heart attack?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "PhysActivity": {
+            "description": "是否进行体育锻炼",
+            "description_en": "Do you engage in physical activity?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "Fruits": {
+            "description": "是否经常摄入水果",
+            "description_en": "Do you consume fruits regularly?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "Veggies": {
+            "description": "是否经常摄入蔬菜",
+            "description_en": "Do you consume vegetables regularly?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "HvyAlcoholConsump": {
+            "description": "是否大量饮酒",
+            "description_en": "Do you consume heavy amounts of alcohol?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "AnyHealthcare": {
+            "description": "是否有医保或医疗服务",
+            "description_en": "Do you have any healthcare coverage or medical services?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "NoDocbcCost": {
+            "description": "因费用问题无法就医",
+            "description_en": "Unable to see a doctor due to cost",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        },
+        "GenHlth": {
+            "description": "总体健康状况评分（1=非常好 到 5=非常差）",
+            "description_en": "General health rating (1=Excellent to 5=Poor)",
+            "type": "ordinal",
+            "values": ["非常好", "好", "一般", "差", "非常差"],
+            "values_en": ["Excellent", "Very Good", "Good", "Fair", "Poor"],
+            "mapping": {
+                    "非常好": 1,
+                    "好": 2,
+                    "一般": 3,
+                    "差": 4,
+                    "非常差": 5
+                }
+        },
+        "MentHlth": {
+            "description": "心理健康问题日数（过去30天）",
+            "description_en": "Number of days with mental health issues (past 30 days)",
+            "type": "numerical",
+            "values": ["0-30"]
+            },
+        "PhysHlth": {
+            "description": "身体健康问题日数（过去30天）",
+            "description_en": "Number of days with physical health issues (past 30 days)",
+            "type": "numerical",
+            "values": ["0-30"]
+            },
+        "DiffWalk": {
+            "description": "是否行走困难",
+            "description_en": "Do you have difficulty walking?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                    "否": 0,
+                    "是": 1
+                }
+        },
+        "Education": {
+            "description": "教育程度",
+            "description_en": "Education level",
+            "type": "categorical",
+            "values": ["未读书", "小学", "初中", "高中", "大专", "大学毕业"],
+            "values_en": ["Never attended school", "Elementary", "Middle School", "High School", "Some College", "College Graduate"],
+            "mapping": {
+                    "未读书": 1,
+                    "小学": 2,
+                    "初中": 3,
+                    "高中": 4,
+                    "大专": 5,
+                    "大学毕业": 6
+                }
+        },
+        "Income": {
+            "description": "收入等级",
+            "description_en": "Income level",
+            "type": "categorical",
+            "values": ["最低收入", "较低", "中低", "中等", "中高", "较高", "高", "最高收入"],
+            "values_en": ["Lowest income", "Lower", "Lower-middle", "Middle", "Upper-middle", "Higher", "High", "Highest income"],
+            "mapping": {
+                    "最低收入": 1,
+                    "较低": 2,
+                    "中低": 3,
+                    "中等": 4,
+                    "中高": 5,
+                    "较高": 6,
+                    "高": 7,
+                    "最高收入": 8
+                }
+        },
+        "Diabetes_binary": {
+            "description": "是否患糖尿病",
+            "description_en": "Do you have diabetes?",
+            "type": "categorical",
+            "values": ["否", "是"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "否": 0,
+                "是": 1
+            }
+        }
+  }
+}

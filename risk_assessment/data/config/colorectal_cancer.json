@@ -1,0 +1,301 @@
+{
+    "data_path": "risk_assessment/data/csvfile/colorectal_cancer.csv",
+    "model_name": "colorectal_cancer",
+    "model_name_en": "Colorectal Cancer",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/colorectal_cancer",
+    "result_path": "risk_assessment/results/colorectal_cancer",
+    "target_column": "Survival_Prediction",
+    "target_mapping_draw": {
+        "0": "未生存",
+        "1": "生存"
+    },
+    "target_mapping_draw_en": {
+        "0": "Not Survived",
+        "1": "Survived"
+    },
+    "feature_columns": {
+        "Country": {
+            "description": "国家",
+            "description_en": "Country",
+            "type": "categorical",
+            "values": ["Australia", "Brazil", "Canada", "China", "France", "Germany", "India", "Italy", "Japan", "New Zealand", "Nigeria", "Pakistan", "South Africa", "South Korea", "UK", "USA"],
+            "values_en": ["Australia", "Brazil", "Canada", "China", "France", "Germany", "India", "Italy", "Japan", "New Zealand", "Nigeria", "Pakistan", "South Africa", "South Korea", "UK", "USA"],
+            "mapping": {
+                "Australia": 0,
+                "Brazil": 1,
+                "Canada": 2,
+                "China": 3,
+                "France": 4,
+                "Germany": 5,
+                "India": 6,
+                "Italy": 7,
+                "Japan": 8,
+                "New Zealand": 9,
+                "Nigeria": 10,
+                "Pakistan": 11,
+                "South Africa": 12,
+                "South Korea": 13,
+                "UK": 14,
+                "USA": 15
+            }
+        },
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["Age"]
+        },
+        "Gender": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["F", "M"],
+            "values_en": ["Female", "Male"],
+            "mapping": {
+                "F": 0,
+                "M": 1
+            }
+        },
+        "Cancer_Stage": {
+            "description": "癌症分期",
+            "description_en": "Cancer stage",
+            "type": "categorical",
+            "values": ["Localized", "Metastatic", "Regional"],
+            "values_en": ["Localized", "Metastatic", "Regional"],
+            "mapping": {
+                "Localized": 0,
+                "Metastatic": 1,
+                "Regional": 2
+            }
+        },
+        "Tumor_Size_mm": {
+            "description": "肿瘤大小（mm）",
+            "description_en": "Tumor size (mm)",
+            "type": "numerical",
+            "values": ["Tumor_Size_mm"]
+        },
+        "Family_History": {
+            "description": "家族史",
+            "description_en": "Family history",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Smoking_History": {
+            "description": "吸烟史",
+            "description_en": "Smoking history",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Alcohol_Consumption": {
+            "description": "饮酒史",
+            "description_en": "Alcohol consumption history",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Obesity_BMI": {
+            "description": "肥胖（BMI分类）",
+            "description_en": "Obesity (BMI category)",
+            "type": "categorical",
+            "values": ["Normal", "Obese", "Overweight"],
+            "values_en": ["Normal", "Obese", "Overweight"],
+            "mapping": {
+                "Normal": 0,
+                "Obese": 1,
+                "Overweight": 2
+            }
+        },
+        "Diet_Risk": {
+            "description": "饮食风险",
+            "description_en": "Diet risk",
+            "type": "categorical",
+            "values": ["High", "Low", "Moderate"],
+            "values_en": ["High", "Low", "Moderate"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Moderate": 2
+            }
+        },
+        "Physical_Activity": {
+            "description": "体育活动水平",
+            "description_en": "Physical activity level",
+            "type": "categorical",
+            "values": ["High", "Low", "Moderate"],
+            "values_en": ["High", "Low", "Moderate"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Moderate": 2
+            }
+        },
+        "Diabetes": {
+            "description": "糖尿病",
+            "description_en": "Diabetes",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Inflammatory_Bowel_Disease": {
+            "description": "炎症性肠病",
+            "description_en": "Inflammatory bowel disease",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Genetic_Mutation": {
+            "description": "基因突变",
+            "description_en": "Genetic mutation",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Screening_History": {
+            "description": "筛查史",
+            "description_en": "Screening history",
+            "type": "categorical",
+            "values": ["Irregular", "Never", "Regular"],
+            "values_en": ["Irregular", "Never", "Regular"],
+            "mapping": {
+                "Irregular": 0,
+                "Never": 1,
+                "Regular": 2
+            }
+        },
+        "Early_Detection": {
+            "description": "早期检测",
+            "description_en": "Early detection",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Treatment_Type": {
+            "description": "治疗类型",
+            "description_en": "Treatment type",
+            "type": "categorical",
+            "values": ["Chemotherapy", "Combination", "Radiotherapy", "Surgery"],
+            "values_en": ["Chemotherapy", "Combination", "Radiotherapy", "Surgery"],
+            "mapping": {
+                "Chemotherapy": 0,
+                "Combination": 1,
+                "Radiotherapy": 2,
+                "Surgery": 3
+            }
+        },
+        "Survival_5_years": {
+            "description": "5年生存",
+            "description_en": "5-year survival",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Mortality": {
+            "description": "死亡",
+            "description_en": "Mortality",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        },
+        "Healthcare_Costs": {
+            "description": "医疗费用",
+            "description_en": "Healthcare costs",
+            "type": "numerical",
+            "values": ["Healthcare_Costs"]
+        },
+        "Urban_or_Rural": {
+            "description": "城乡分类",
+            "description_en": "Urban or rural classification",
+            "type": "categorical",
+            "values": ["Rural", "Urban"],
+            "values_en": ["Rural", "Urban"],
+            "mapping": {
+                "Rural": 0,
+                "Urban": 1
+            }
+        },
+        "Economic_Classification": {
+            "description": "经济分类",
+            "description_en": "Economic classification",
+            "type": "categorical",
+            "values": ["Developed", "Developing"],
+            "values_en": ["Developed", "Developing"],
+            "mapping": {
+                "Developed": 0,
+                "Developing": 1
+            }
+        },
+        "Healthcare_Access": {
+            "description": "医疗可及性",
+            "description_en": "Healthcare access",
+            "type": "categorical",
+            "values": ["High", "Low", "Moderate"],
+            "values_en": ["High", "Low", "Moderate"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Moderate": 2
+            }
+        },
+        "Insurance_Status": {
+            "description": "保险状态",
+            "description_en": "Insurance status",
+            "type": "categorical",
+            "values": ["Insured", "Uninsured"],
+            "values_en": ["Insured", "Uninsured"],
+            "mapping": {
+                "Insured": 0,
+                "Uninsured": 1
+            }
+        },
+        "Survival_Prediction": {
+            "description": "生存预测",
+            "description_en": "Survival prediction",
+            "type": "categorical",
+            "values": ["No", "Yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "No": 0,
+                "Yes": 1
+            }
+        }
+    }
+}

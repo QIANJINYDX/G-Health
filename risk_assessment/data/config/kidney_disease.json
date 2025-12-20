@@ -1,0 +1,224 @@
+{
+    "data_path": "risk_assessment/data/csvfile/kidney_disease.csv",
+    "model_name": "kidney_disease",
+    "model_name_en": "Chronic Kidney Disease",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/kidney_disease",
+    "result_path": "risk_assessment/results/kidney_disease",
+    "target_column": "class",
+    "target_mapping_draw": {
+        "0": "慢性肾病",
+        "1": "非慢性肾病"
+    },
+    "target_mapping_draw_en": {
+        "0": "Chronic Kidney Disease",
+        "1": "Non-Chronic Kidney Disease"
+    },
+    "feature_columns": {
+        "age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["age"]
+        },
+        "blood_pressure": {
+            "description": "血压",
+            "description_en": "Blood pressure",
+            "type": "numerical",
+            "values": ["blood_pressure"]
+        },
+        "specific_gravity": {
+            "description": "尿比重",
+            "description_en": "Specific gravity",
+            "type": "numerical",
+            "values": ["specific_gravity"]
+        },
+        "albumin": {
+            "description": "白蛋白",
+            "description_en": "Albumin",
+            "type": "numerical",
+            "values": ["albumin"]
+        },
+        "sugar": {
+            "description": "糖",
+            "description_en": "Sugar",
+            "type": "numerical",
+            "values": ["sugar"]
+        },
+        "red_blood_cells": {
+            "description": "红细胞",
+            "description_en": "Red blood cells",
+            "type": "categorical",
+            "values": ["abnormal", "normal"],
+            "values_en": ["Abnormal", "Normal"],
+            "mapping": {
+                "abnormal": 0,
+                "normal": 1
+            }
+        },
+        "pus_cell": {
+            "description": "脓细胞",
+            "description_en": "Pus cell",
+            "type": "categorical",
+            "values": ["abnormal", "normal"],
+            "values_en": ["Abnormal", "Normal"],
+            "mapping": {
+                "abnormal": 0,
+                "normal": 1
+            }
+        },
+        "pus_cell_clumps": {
+            "description": "脓细胞团",
+            "description_en": "Pus cell clumps",
+            "type": "categorical",
+            "values": ["notpresent", "present"],
+            "values_en": ["Not Present", "Present"],
+            "mapping": {
+                "notpresent": 0,
+                "present": 1
+            }
+        },
+        "bacteria": {
+            "description": "细菌",
+            "description_en": "Bacteria",
+            "type": "categorical",
+            "values": ["notpresent", "present"],
+            "values_en": ["Not Present", "Present"],
+            "mapping": {
+                "notpresent": 0,
+                "present": 1
+            }
+        },
+        "blood_glucose_random": {
+            "description": "随机血糖",
+            "description_en": "Random blood glucose",
+            "type": "numerical",
+            "values": ["blood_glucose_random"]
+        },
+        "blood_urea": {
+            "description": "血尿素",
+            "description_en": "Blood urea",
+            "type": "numerical",
+            "values": ["blood_urea"]
+        },
+        "serum_creatinine": {
+            "description": "血清肌酐",
+            "description_en": "Serum creatinine",
+            "type": "numerical",
+            "values": ["serum_creatinine"]
+        },
+        "sodium": {
+            "description": "钠",
+            "description_en": "Sodium",
+            "type": "numerical",
+            "values": ["sodium"]
+        },
+        "potassium": {
+            "description": "钾",
+            "description_en": "Potassium",
+            "type": "numerical",
+            "values": ["potassium"]
+        },
+        "haemoglobin": {
+            "description": "血红蛋白",
+            "description_en": "Hemoglobin",
+            "type": "numerical",
+            "values": ["haemoglobin"]
+        },
+        "packed_cell_volume": {
+            "description": "红细胞压积",
+            "description_en": "Packed cell volume",
+            "type": "numerical",
+            "values": ["packed_cell_volume"]
+        },
+        "white_blood_cell_count": {
+            "description": "白细胞计数",
+            "description_en": "White blood cell count",
+            "type": "numerical",
+            "values": ["white_blood_cell_count"]
+        },
+        "red_blood_cell_count": {
+            "description": "红细胞计数",
+            "description_en": "Red blood cell count",
+            "type": "numerical",
+            "values": ["red_blood_cell_count"]
+        },
+        "hypertension": {
+            "description": "高血压",
+            "description_en": "Hypertension",
+            "type": "categorical",
+            "values": ["no", "yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "no": 0,
+                "yes": 1
+            }
+        },
+        "diabetes_mellitus": {
+            "description": "糖尿病",
+            "description_en": "Diabetes mellitus",
+            "type": "categorical",
+            "values": ["no", "yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "no": 0,
+                "yes": 1
+            }
+        },
+        "coronary_artery_disease": {
+            "description": "冠状动脉疾病",
+            "description_en": "Coronary artery disease",
+            "type": "categorical",
+            "values": ["no", "yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "no": 0,
+                "yes": 1
+            }
+        },
+        "appetite": {
+            "description": "食欲",
+            "description_en": "Appetite",
+            "type": "categorical",
+            "values": ["good", "poor"],
+            "values_en": ["Good", "Poor"],
+            "mapping": {
+                "good": 0,
+                "poor": 1
+            }
+        },
+        "peda_edema": {
+            "description": "足部水肿",
+            "description_en": "Pedal edema",
+            "type": "categorical",
+            "values": ["no", "yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "no": 0,
+                "yes": 1
+            }
+        },
+        "aanemia": {
+            "description": "贫血",
+            "description_en": "Anemia",
+            "type": "categorical",
+            "values": ["no", "yes"],
+            "values_en": ["No", "Yes"],
+            "mapping": {
+                "no": 0,
+                "yes": 1
+            }
+        },
+        "class": {
+            "description": "是否患有慢性肾病",
+            "description_en": "Do you have chronic kidney disease?",
+            "type": "categorical",
+            "values": ["ckd", "not ckd"],
+            "values_en": ["CKD", "Not CKD"],
+            "mapping": {
+                "ckd": 0,
+                "not ckd": 1
+            }
+        }
+    }
+}

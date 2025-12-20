@@ -1,0 +1,122 @@
+{
+    "data_path": "risk_assessment/data/csvfile/lung_cancer_dataset.csv",
+    "model_name": "lung_cancer",
+    "model_name_en": "Lung Cancer",
+    "model_type": "binary",
+    "model_path": "risk_assessment/models/lung_cancer",
+    "result_path": "risk_assessment/results/lung_cancer",
+    "target_column": "LUNG_CANCER",
+    "target_mapping_draw": {
+        "0": "否",
+        "1": "是"
+    },
+    "target_mapping_draw_en": {
+        "0": "NO",
+        "1": "YES"
+    },
+    "feature_columns": {
+        "LUNG_CANCER": {
+            "description": "是否患肺癌（YES/NO，为分类目标）",
+            "description_en": "Do you have lung cancer? (YES/NO, classification target)",
+            "type": "categorical",
+            "values": ["NO", "YES"],
+            "values_en": ["NO", "YES"],
+            "mapping": {"NO": 0, "YES": 1}
+        },
+        "GENDER": {
+            "description": "性别（M=男，F=女）",
+            "description_en": "Gender (M=Male, F=Female)",
+            "type": "categorical",
+            "values": ["F", "M"],
+            "values_en": ["Female", "Male"],
+            "mapping": {"F": 0, "M": 1}
+        },
+        "AGE": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "SMOKING": {
+            "description": "吸烟程度（1=低，2=高）",
+            "description_en": "Smoking level (1=Low, 2=High)",
+            "type": "categorical",
+            "values": [1, 2],
+            "values_en": ["Low", "High"]
+        },
+        "YELLOW_FINGERS": {
+            "description": "手指发黄（1=无，2=明显）",
+            "description_en": "Yellow fingers (1=None, 2=Obvious)",
+            "type": "categorical",
+            "values": [1, 2],
+            "values_en": ["None", "Obvious"]
+        },
+        "ANXIETY": {
+            "description": "焦虑水平（数值编码）",
+            "description_en": "Anxiety level (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "PEER_PRESSURE": {
+            "description": "社交压力（数值编码）",
+            "description_en": "Peer pressure (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "CHRONIC DISEASE": {
+            "description": "是否有慢性疾病（数值编码）",
+            "description_en": "Do you have chronic disease? (numeric encoding)",
+            "type": "categorical",
+            "values": [0, 1],
+            "values_en": ["No", "Yes"]
+        },
+        "FATIGUE": {
+            "description": "疲劳情况（数值编码）",
+            "description_en": "Fatigue condition (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "ALLERGY": {
+            "description": "过敏情况（数值编码）",
+            "description_en": "Allergy condition (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "WHEEZING": {
+            "description": "喘息症状（数值编码）",
+            "description_en": "Wheezing symptoms (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "ALCOHOL CONSUMING": {
+            "description": "饮酒情况（数值编码）",
+            "description_en": "Alcohol consumption (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "COUGHING": {
+            "description": "咳嗽情况（数值编码）",
+            "description_en": "Coughing condition (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "SHORTNESS OF BREATH": {
+            "description": "呼吸急促（数值编码）",
+            "description_en": "Shortness of breath (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "SWALLOWING DIFFICULTY": {
+            "description": "吞咽困难（数值编码）",
+            "description_en": "Swallowing difficulty (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "CHEST PAIN": {
+            "description": "胸痛（数值编码）",
+            "description_en": "Chest pain (numeric encoding)",
+            "type": "numerical",
+            "values": ["分"]
+        }
+    }
+}

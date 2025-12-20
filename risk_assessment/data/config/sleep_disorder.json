@@ -1,0 +1,107 @@
+{
+    "data_path": "risk_assessment/data/csvfile/sleep_disorder_dataset.csv",
+    "model_name": "sleep_disorder",
+    "model_name_en": "Sleep Disorder",
+    "model_type": "multiclass",
+    "model_path": "risk_assessment/models/sleep_disorder",
+    "result_path": "risk_assessment/results/sleep_disorder",
+    "target_column": "Sleep Disorder",
+    "target_mapping_draw": {
+        "0": "无",
+        "1": "睡眠呼吸暂停",
+        "2": "失眠"
+    },
+    "target_mapping_draw_en": {
+        "0": "None",
+        "1": "Sleep Apnea",
+        "2": "Insomnia"
+    },
+    "feature_columns": {
+        "Sleep Disorder": {
+            "description": "睡眠障碍类型（如 Sleep Apnea、Insomnia，Nan无）",
+            "description_en": "Sleep disorder type (e.g., Sleep Apnea, Insomnia, None)",
+            "type": "categorical",
+            "values": ["None", "Sleep Apnea", "Insomnia"],
+            "values_en": ["None", "Sleep Apnea", "Insomnia"],
+            "mapping": {"None": 0, "Sleep Apnea": 1, "Insomnia": 2}
+        },
+        "Gender": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["Female", "Male"],
+            "values_en": ["Female", "Male"],
+            "mapping": {"Female": 0, "Male": 1}
+        },
+        "Age": {
+            "description": "年龄（单位：岁）",
+            "description_en": "Age (unit: years)",
+            "type": "numerical",
+            "values": ["岁"]
+        },
+        "Occupation": {
+            "description": "职业",
+            "description_en": "Occupation",
+            "type": "categorical",
+            "values": ["Accountant", "Doctor", "Engineer", "Lawyer", "Manager", "Nurse", "Sales Representative", "Salesperson", "Scientist", "Software Engineer", "Teacher"],
+            "values_en": ["Accountant", "Doctor", "Engineer", "Lawyer", "Manager", "Nurse", "Sales Representative", "Salesperson", "Scientist", "Software Engineer", "Teacher"],
+            "mapping": {"Accountant": 0, "Doctor": 1, "Engineer": 2, "Lawyer": 3, "Manager": 4, "Nurse": 5, "Sales Representative": 6, "Salesperson": 7, "Scientist": 8, "Software Engineer": 9, "Teacher": 10}
+        },
+        "Sleep Duration": {
+            "description": "平均每日睡眠时长（单位：小时）",
+            "description_en": "Average daily sleep duration (unit: hours)",
+            "type": "numerical",
+            "values": ["小时"]
+        },
+        "Quality of Sleep": {
+            "description": "睡眠质量评分（1~10，分值越高质量越好）",
+            "description_en": "Sleep quality score (1~10, higher score means better quality)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "Physical Activity Level": {
+            "description": "每周平均体力活动指数（可能基于分钟或运动量得分）",
+            "description_en": "Weekly average physical activity level (may be based on minutes or exercise score)",
+            "type": "numerical",
+            "values": ["指数"]
+        },
+        "Stress Level": {
+            "description": "压力等级评分（1~10，分值越高压力越大）",
+            "description_en": "Stress level score (1~10, higher score means more stress)",
+            "type": "numerical",
+            "values": ["分"]
+        },
+        "BMI Category": {
+            "description": "身体质量指数分类（如 Normal、Overweight、Obese）",
+            "description_en": "BMI category (e.g., Normal, Overweight, Obese)",
+            "type": "categorical",
+            "values": ["Normal", "Normal Weight", "Obese", "Overweight"],
+            "values_en": ["Normal", "Normal Weight", "Obese", "Overweight"],
+            "mapping": {"Normal": 0, "Normal Weight": 1, "Obese": 2, "Overweight": 3}
+        },
+        "Systolic BP": {
+            "description": "收缩压",
+            "description_en": "Systolic blood pressure",
+            "type": "numerical",
+            "values": ["mmHg"]
+        },
+        "Diastolic BP": {
+            "description": "舒张压",
+            "description_en": "Diastolic blood pressure",
+            "type": "numerical",
+            "values": ["mmHg"]
+        },
+        "Heart Rate": {
+            "description": "心率（次/分钟）",
+            "description_en": "Heart rate (beats/minute)",
+            "type": "numerical",
+            "values": ["次/分钟"]
+        },
+        "Daily Steps": {
+            "description": "每日平均步数",
+            "description_en": "Daily average steps",
+            "type": "numerical",
+            "values": ["步"]
+        }
+    }
+}

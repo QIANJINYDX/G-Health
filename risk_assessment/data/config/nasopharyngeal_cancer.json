@@ -1,0 +1,92 @@
+{
+    "data_path": "risk_assessment/data/csvfile/nasopharyngeal_cancer.csv",
+    "model_name": "nasopharyngeal_cancer",
+    "model_name_en": "Nasopharyngeal Cancer",
+    "model_type": "multiclass",
+    "model_path": "risk_assessment/models/nasopharyngeal_cancer",
+    "result_path": "risk_assessment/results/nasopharyngeal_cancer",
+    "target_column": "Level",
+    "target_mapping_draw": {
+        "0": "高风险",
+        "1": "低风险",
+        "2": "中等风险"
+    },
+    "target_mapping_draw_en": {
+        "0": "High Risk",
+        "1": "Low Risk",
+        "2": "Medium Risk"
+    },
+    "feature_columns": {
+        "Age": {
+            "description": "年龄",
+            "description_en": "Age",
+            "type": "numerical",
+            "values": ["Age"]
+        },
+        "Gender": {
+            "description": "性别",
+            "description_en": "Gender",
+            "type": "categorical",
+            "values": ["1", "2"],
+            "values_en": ["Male", "Female"],
+            "mapping": {
+                "1": 0,
+                "2": 1
+            }
+        },
+        "Air Pollution": {
+            "description": "空气污染程度",
+            "description_en": "Air pollution level",
+            "type": "numerical",
+            "values": ["1-7"]
+        },
+        "Alcohol use": {
+            "description": "饮酒程度",
+            "description_en": "Alcohol use level",
+            "type": "numerical",
+            "values": ["1-8"]
+        },
+        "Smoking": {
+            "description": "吸烟程度",
+            "description_en": "Smoking level",
+            "type": "numerical",
+            "values": ["1-8"]
+        },
+        "Passive Smoker": {
+            "description": "被动吸烟程度",
+            "description_en": "Passive smoking level",
+            "type": "numerical",
+            "values": ["1-7"]
+        },
+        "Frequent Cold": {
+            "description": "频繁感冒程度",
+            "description_en": "Frequent cold level",
+            "type": "numerical",
+            "values": ["1-7"]
+        },
+        "Dry Cough": {
+            "description": "干咳程度",
+            "description_en": "Dry cough level",
+            "type": "numerical",
+            "values": ["1-7"]
+        },
+        "Snoring": {
+            "description": "打鼾程度",
+            "description_en": "Snoring level",
+            "type": "numerical",
+            "values": ["1-7"]
+        },
+        "Level": {
+            "description": "风险等级",
+            "description_en": "Risk level",
+            "type": "categorical",
+            "values": ["High", "Low", "Medium"],
+            "values_en": ["High", "Low", "Medium"],
+            "mapping": {
+                "High": 0,
+                "Low": 1,
+                "Medium": 2
+            }
+        }
+    }
+}
