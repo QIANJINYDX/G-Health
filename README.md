@@ -60,7 +60,7 @@ This project implements a comprehensive multi-agent medical system for health ex
    cd JiShi
    ```
 
-2. **Install the JiShiconda environment**:
+2. **Install the JiShi conda environment**:
    ```bash
    conda env create -f environment.yml
    conda activate jishi
