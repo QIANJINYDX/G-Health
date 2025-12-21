@@ -185,7 +185,7 @@ def pil_to_base64(image):
     img_str = base64.b64encode(buffer.getvalue()).decode()
     return f"data:image/png;base64,{img_str}"
 
-router_model = load_router_model("risk_assessment/model_router/data/router_resnet18.pth")
+router_model = load_router_model("risk_assessment/models/router_resnet18.pth")
 
 
 chat_controller = ChatController()
