@@ -914,7 +914,7 @@ def extract_number_and_judge(response: str) -> bool:
         return False
     
 
-def analyze_dialogue(dialogue: str, client: Client, language: str = 'zh') -> int:
+def analyze_dialogue(dialogue: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> int:
     """
     使用临床语言分析师分析对话内容，判断是否需要调用风险评估模型
     
@@ -922,6 +922,7 @@ def analyze_dialogue(dialogue: str, client: Client, language: str = 'zh') -> int
         dialogue: 用户对话内容
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     
     Returns:
         int: 风险模型编号（-1表示无需调用任何模型）
@@ -935,6 +936,7 @@ def analyze_dialogue(dialogue: str, client: Client, language: str = 'zh') -> int
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_rag=False,
             use_mcp=False
         )
@@ -966,7 +968,7 @@ def analyze_dialogue(dialogue: str, client: Client, language: str = 'zh') -> int
         print(f"Clinical analysis error: {str(e)}")
         return -1  # 发生错误时返回-1
 
-def get_nurse_response(model_name: str, user_info: str, form_data: str, client: Client, language: str = 'zh') -> Dict[str, str]:
+def get_nurse_response(model_name: str, user_info: str, form_data: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> Dict[str, str]:
     """
     获取护士对用户健康评估的回应建议
     
@@ -976,6 +978,7 @@ def get_nurse_response(model_name: str, user_info: str, form_data: str, client: 
         form_data: 表单数据
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的Ollama模型名称，默认为 qwen3:32b
     
     Returns:
         Dict[str, str]: 包含RAG响应和护士健康建议的字典
@@ -994,6 +997,7 @@ def get_nurse_response(model_name: str, user_info: str, form_data: str, client: 
         return chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_rag=False,
             use_mcp=False
         )
@@ -1005,7 +1009,7 @@ def get_nurse_response(model_name: str, user_info: str, form_data: str, client: 
             "llm_response": "抱歉，暂时无法提供健康建议。请稍后再试。"
         }
 
-def generate_health_report(dialogue: str, client: Client, language: str = 'zh') -> Dict[str, str]:
+def generate_health_report(dialogue: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> Dict[str, str]:
     """
     根据用户与医生的对话内容生成健康体检报告
     
@@ -1013,6 +1017,7 @@ def generate_health_report(dialogue: str, client: Client, language: str = 'zh') 
         dialogue: 用户与医生的对话内容
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     
     Returns:
         Dict[str, str]: 包含RAG响应和格式化的健康体检报告的字典
@@ -1026,6 +1031,7 @@ def generate_health_report(dialogue: str, client: Client, language: str = 'zh') 
         return chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_rag=False,
             use_mcp=False
         )
@@ -1037,7 +1043,7 @@ def generate_health_report(dialogue: str, client: Client, language: str = 'zh') 
             "llm_response": "抱歉，暂时无法生成健康体检报告。请稍后再试。"
         }
 
-def generate_follow_up_questions(question: str, answer: str, client: Client, language: str = 'zh') -> List[str]:
+def generate_follow_up_questions(question: str, answer: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> List[str]:
     """
     根据用户问题和AI回答生成后续追问建议
     
@@ -1046,6 +1052,7 @@ def generate_follow_up_questions(question: str, answer: str, client: Client, lan
         answer: AI的回答内容
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     
     Returns:
         List[str]: 最多3条追问建议的列表
@@ -1059,6 +1066,7 @@ def generate_follow_up_questions(question: str, answer: str, client: Client, lan
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_rag=False,
             use_mcp=False
         )

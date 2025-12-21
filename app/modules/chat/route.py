@@ -576,7 +576,7 @@ def send_message(session_id):
                     follow_up_questions = None
                     try:
                         from app.util.clinical_analyst import generate_follow_up_questions
-                        follow_up_questions = generate_follow_up_questions(current_message or "", workflow_full, ollama_client, language)
+                        follow_up_questions = generate_follow_up_questions(current_message or "", workflow_full, ollama_client, language, model=model)
                     except Exception as follow_up_error:
                         print(f"生成后续追问建议失败: {str(follow_up_error)}")
 
@@ -669,7 +669,7 @@ def send_message(session_id):
                         from app.util.clinical_analyst import generate_follow_up_questions
                         
                         # 生成后续追问建议
-                        follow_up_questions = generate_follow_up_questions(current_message, full_response, ollama_client, language)
+                        follow_up_questions = generate_follow_up_questions(current_message, full_response, ollama_client, language, model=model)
                         print("流式输出后的引导问题：",follow_up_questions)
                         
                     except Exception as follow_up_error:
@@ -690,7 +690,7 @@ def send_message(session_id):
                     
                     # 处理风险评估
                     if current_message:
-                        risk_model = analyze_dialogue(current_message, ollama_client, language)
+                        risk_model = analyze_dialogue(current_message, ollama_client, language, model=model)
                         if risk_model >= 0:
                             model_config = risk_config.get_model_info(risk_model, language)
                             if model_config:
@@ -1033,10 +1033,12 @@ def predict_risk(model_id, session_id):
             
             # 获取语言参数（从JSON请求中获取，如果没有则默认为中文）
             language = data.get('language', 'zh')
+            # 获取模型参数（从JSON请求中获取，如果没有则使用默认值）
+            model = data.get('model', 'qwen3:32b')
             
             if model_info['model_type'] == 'regression':
                 message = f"{'预测结果' if language == 'zh' else 'Prediction'}：{prediction}"
-                nurse_response = get_nurse_response(model_info['model_name'], prediction, str(data), ollama_client, language)
+                nurse_response = get_nurse_response(model_info['model_name'], prediction, str(data), ollama_client, language, model=model)
             else:
                 prob_text = f"{probability:.4f}" if probability is not None else ""
                 message = (
@@ -1044,7 +1046,7 @@ def predict_risk(model_id, session_id):
                     if language == 'zh'
                     else f"Prediction: {prediction_label}, probability: {prob_text}"
                 )
-                nurse_response = get_nurse_response(model_info['model_name'], prediction_label, str(data), ollama_client, language)
+                nurse_response = get_nurse_response(model_info['model_name'], prediction_label, str(data), ollama_client, language, model=model)
             
             print(f"Nurse response: {nurse_response}")
             
@@ -1513,8 +1515,10 @@ def export_report(session_id):
         print("当前会话对话信息：",dialogue)
         # 获取语言参数（从请求参数中获取，如果没有则默认为中文）
         language = request.args.get('language', 'zh')
+        # 获取模型参数（从请求参数中获取，如果没有则使用默认值）
+        model = request.args.get('model', 'qwen3:32b')
         # 生成健康体检报告
-        report_result = generate_health_report(dialogue, ollama_client, language)
+        report_result = generate_health_report(dialogue, ollama_client, language, model=model)
         
         # 处理返回的报告结果
         if isinstance(report_result, dict):
