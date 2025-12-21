@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="chatTitle">济世 - 智能问答</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/images/icon.png">
     <!-- Bootstrap 5 CSS -->
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <script src="/static/js/marked.min.js"></script>
@@ -216,6 +218,78 @@
       /* 侧边栏收起时，主内容区左边距缩小 */
       #sidebar.collapsed + .main-content {
         padding-left: 56px !important;
+      }
+      /* 模型选择框样式 */
+      #model-selector-container {
+        transition: margin-left 0.2s;
+      }
+      /* 侧边栏收起时，调整模型选择框位置 */
+      #sidebar.collapsed ~ .main-content #model-selector-container {
+        margin-left: 56px !important;
+      }
+      /* 模型选择框样式 - 无边框，大字体 */
+      #model-select, #model-select-mobile {
+        border: none !important;
+        border-radius: 0 !important;
+        font-size: 16px !important;
+        font-weight: 500 !important;
+        padding: 6px 30px 6px 12px !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        cursor: pointer !important;
+      }
+      #model-select:focus, #model-select-mobile:focus {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+      /* 添加自定义下拉箭头（∨符号） */
+      #model-selector-container::after {
+        content: '∨';
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 16px;
+        color: #333;
+        font-weight: normal;
+        line-height: 1;
+      }
+      #model-selector-container-mobile::after {
+        content: '∨';
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 15px;
+        color: #333;
+        font-weight: normal;
+        line-height: 1;
+      }
+      /* 下拉选项样式 - 无边框 */
+      #model-select option, #model-select-mobile option {
+        border: none !important;
+        padding: 8px 12px !important;
+        font-size: 16px !important;
+        background: white !important;
+      }
+      /* 下拉列表容器样式 */
+      #model-select, #model-select-mobile {
+        background-color: transparent !important;
+      }
+      /* 移动端模型选择框样式 */
+      @media (max-width: 767.98px) {
+        #model-selector-container {
+          display: none !important;
+        }
+        #model-select-mobile {
+          font-size: 15px !important;
+        }
       }
       /* 移动端主内容区无左边距 */
       @media (max-width: 767.98px) {
@@ -1133,10 +1207,6 @@
                 </button>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                <!-- 模型选择下拉框（移动端） -->
-                <select class="form-select form-select-sm" id="model-select-mobile" style="width: auto; min-width: 120px; max-width: 160px;" title="选择Ollama模型">
-                  <option value="qwen3:32b" selected>qwen3:32b</option>
-                </select>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-zh-mobile" onclick="i18n.switchLanguage('zh')">ZH</button>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-en-mobile" onclick="i18n.switchLanguage('en')">EN</button>
                 </div>
@@ -1192,10 +1262,6 @@
                 </button>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                <!-- 模型选择下拉框 -->
-                <select class="form-select form-select-sm" id="model-select" style="width: auto; min-width: 140px; max-width: 180px;" title="选择Ollama模型">
-                  <option value="qwen3:32b" selected>qwen3:32b</option>
-                </select>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-zh-sidebar" onclick="i18n.switchLanguage('zh')">ZH</button>
                 <button class="btn btn-sm btn-outline-secondary" id="lang-en-sidebar" onclick="i18n.switchLanguage('en')">EN</button>
                 </div>
@@ -1237,6 +1303,18 @@
               <button class="btn btn-outline-secondary d-md-none position-fixed top-0 start-0 m-2 mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" style="z-index: 1050;">
                 <svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
               </button>
+              <!-- 模型选择框 - 固定在左上角 -->
+              <div class="position-fixed top-0 start-0 p-2" style="z-index: 1040; margin-left: 240px; margin-top: 8px; position: relative;" id="model-selector-container">
+                <select class="form-select form-select-sm" id="model-select" style="width: auto; min-width: 140px; max-width: 180px;" title="选择Ollama模型">
+                  <option value="qwen3:32b" selected>qwen3:32b</option>
+                </select>
+              </div>
+              <!-- 移动端模型选择框 -->
+              <div class="position-fixed top-0 start-0 p-2 d-md-none" style="z-index: 1040; margin-left: 60px; margin-top: 8px; position: relative;" id="model-selector-container-mobile">
+                <select class="form-select form-select-sm" id="model-select-mobile" style="width: auto; min-width: 120px; max-width: 160px;" title="选择Ollama模型">
+                  <option value="qwen3:32b" selected>qwen3:32b</option>
+                </select>
+              </div>
               <!-- 聊天消息区域 -->
               <div id="chat-messages"></div>
             </main>
@@ -1753,14 +1831,21 @@
             loadOllamaModels();
             setupModelSelector();
             
-            // 初始化输入框位置
+            // 初始化输入框和模型选择框位置
             const sidebar = document.getElementById('sidebar');
             const chatInputBar = document.querySelector('.chat-input-bar');
+            const modelSelector = document.getElementById('model-selector-container');
             if (sidebar && chatInputBar) {
                 if (sidebar.classList.contains('collapsed')) {
                     chatInputBar.style.left = '56px';
+                    if (modelSelector) {
+                        modelSelector.style.marginLeft = '56px';
+                    }
                 } else {
                     chatInputBar.style.left = '240px';
+                    if (modelSelector) {
+                        modelSelector.style.marginLeft = '240px';
+                    }
                 }
             }
             
@@ -3794,14 +3879,22 @@
         function toggleSidebar() {
           const sidebar = document.getElementById('sidebar');
           const chatInputBar = document.querySelector('.chat-input-bar');
+          const modelSelector = document.getElementById('model-selector-container');
           sidebar.classList.add('collapsed');
           chatInputBar.style.left = '56px';
+          if (modelSelector) {
+            modelSelector.style.marginLeft = '56px';
+          }
         }
         function openSidebar() {
           const sidebar = document.getElementById('sidebar');
           const chatInputBar = document.querySelector('.chat-input-bar');
+          const modelSelector = document.getElementById('model-selector-container');
           sidebar.classList.remove('collapsed');
           chatInputBar.style.left = '240px';
+          if (modelSelector) {
+            modelSelector.style.marginLeft = '240px';
+          }
         }
         // 用户菜单显示/隐藏（桌面端）
         function showUserMenu() {
