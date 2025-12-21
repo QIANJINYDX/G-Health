@@ -1318,6 +1318,66 @@
               <!-- 聊天消息区域 -->
               <div id="chat-messages"></div>
             </main>
+            
+            <!-- 登录弹窗 -->
+            <div id="login-modal" class="modal fade" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 8px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                  <div class="modal-header" style="border-bottom: 2px solid #f0f0f0; padding: 1.5rem;">
+                    <div class="d-flex align-items-center justify-content-center w-100">
+                      <img src="/static/images/logo.png" alt="Logo" style="width: 50px; height: 50px; margin-right: 10px;">
+                      <h5 class="modal-title" id="loginModalLabel" data-i18n="appName">济世</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="display: none;"></button>
+                  </div>
+                  <div class="modal-body" style="padding: 2rem;">
+                    <div class="tabs mb-3" style="display: flex; border-bottom: 2px solid #f0f0f0;">
+                      <div class="tab active" onclick="switchLoginTab('login')" style="flex: 1; padding: 1rem; text-align: center; cursor: pointer; color: #666; transition: all 0.3s; border-bottom: 2px solid transparent; margin-bottom: -2px;" id="login-tab">
+                        <span data-i18n="login">登录</span>
+                      </div>
+                      <div class="tab" onclick="switchLoginTab('register')" style="flex: 1; padding: 1rem; text-align: center; cursor: pointer; color: #666; transition: all 0.3s; border-bottom: 2px solid transparent; margin-bottom: -2px;" id="register-tab">
+                        <span data-i18n="register">注册</span>
+                      </div>
+                    </div>
+                    
+                    <!-- 登录表单 -->
+                    <form id="modal-login-form">
+                      <div class="mb-3">
+                        <label for="modal-login-username" class="form-label" data-i18n="username">用户名</label>
+                        <input type="text" class="form-control" id="modal-login-username" required>
+                        <div class="text-danger small mt-1" id="modal-login-username-error" style="display: none;"></div>
+                      </div>
+                      <div class="mb-3">
+                        <label for="modal-login-password" class="form-label" data-i18n="password">密码</label>
+                        <input type="password" class="form-control" id="modal-login-password" required>
+                        <div class="text-danger small mt-1" id="modal-login-password-error" style="display: none;"></div>
+                      </div>
+                      <button type="submit" class="btn btn-primary w-100" style="background: #00a8ff; border: none; padding: 0.8rem;" data-i18n="login">登录</button>
+                    </form>
+                    
+                    <!-- 注册表单 -->
+                    <form id="modal-register-form" style="display: none;">
+                      <div class="mb-3">
+                        <label for="modal-register-username" class="form-label" data-i18n="username">用户名</label>
+                        <input type="text" class="form-control" id="modal-register-username" required>
+                        <div class="text-danger small mt-1" id="modal-register-username-error" style="display: none;"></div>
+                      </div>
+                      <div class="mb-3">
+                        <label for="modal-register-password" class="form-label" data-i18n="password">密码</label>
+                        <input type="password" class="form-control" id="modal-register-password" required>
+                        <div class="text-danger small mt-1" id="modal-register-password-error" style="display: none;"></div>
+                      </div>
+                      <div class="mb-3">
+                        <label for="modal-register-confirm-password" class="form-label" data-i18n="confirmPassword">确认密码</label>
+                        <input type="password" class="form-control" id="modal-register-confirm-password" required>
+                        <div class="text-danger small mt-1" id="modal-register-confirm-password-error" style="display: none;"></div>
+                      </div>
+                      <button type="submit" class="btn btn-primary w-100" style="background: #00a8ff; border: none; padding: 0.8rem;" data-i18n="register">注册</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
             <!-- 输入区域固定底部，移到主内容区之后，与sidebar同级 -->
           </main>
         </div>
@@ -1563,17 +1623,32 @@
                             selectElement.appendChild(option);
                         });
                         
-                        // 如果保存的模型或默认模型不在列表中，添加它
+                        // 如果保存的模型或默认模型不在列表中，使用列表中的第一个模型
                         const modelToCheck = savedModel || selectedModel;
                         if (!data.models.find(m => m.name === modelToCheck)) {
-                            const defaultOption = document.createElement('option');
-                            defaultOption.value = modelToCheck;
-                            defaultOption.textContent = modelToCheck + ' (未安装)';
-                            defaultOption.selected = true;
-                            selectElement.insertBefore(defaultOption, selectElement.firstChild);
-                            selectedModel = modelToCheck;
+                            // 如果默认模型不在列表中，使用列表中的第一个模型
+                            if (data.models.length > 0) {
+                                selectedModel = data.models[0].name;
+                                // 设置第一个模型为选中
+                                const firstOption = selectElement.querySelector(`option[value="${selectedModel}"]`);
+                                if (firstOption) {
+                                    firstOption.selected = true;
+                                }
+                                // 更新localStorage
+                                localStorage.setItem('selectedOllamaModel', selectedModel);
+                            }
                         } else if (savedModel) {
                             selectedModel = savedModel;
+                        }
+                        
+                        // 确保至少有一个模型被选中（如果没有匹配的模型）
+                        if (!hasSelectedModel && data.models.length > 0) {
+                            const firstOption = selectElement.querySelector(`option[value="${data.models[0].name}"]`);
+                            if (firstOption && !firstOption.selected) {
+                                firstOption.selected = true;
+                                selectedModel = data.models[0].name;
+                                localStorage.setItem('selectedOllamaModel', selectedModel);
+                            }
                         }
                     } else {
                         // 如果没有检测到模型，显示错误提示
@@ -1822,11 +1897,105 @@
             });
         }
 
+        // 检查登录状态
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/v1/chat/check-auth');
+                const data = await response.json();
+                if (!data.authenticated) {
+                    // 显示登录弹窗
+                    const loginModalElement = document.getElementById('login-modal');
+                    if (loginModalElement) {
+                        const loginModal = new bootstrap.Modal(loginModalElement, {
+                            backdrop: 'static',
+                            keyboard: false
+                        });
+                        loginModal.show();
+                        // 禁用页面功能
+                        disablePageFunctions();
+                    }
+                    return false;
+                } else {
+                    // 已登录，加载用户信息
+                    loadUserInfo();
+                    enablePageFunctions();
+                    return true;
+                }
+            } catch (error) {
+                console.error('检查登录状态失败:', error);
+                // 出错时也显示登录弹窗
+                const loginModalElement = document.getElementById('login-modal');
+                if (loginModalElement) {
+                    const loginModal = new bootstrap.Modal(loginModalElement, {
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    loginModal.show();
+                    disablePageFunctions();
+                }
+                return false;
+            }
+        }
+        
+        // 禁用页面功能（未登录时）
+        function disablePageFunctions() {
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const newChatBtn = document.getElementById('new-chat-btn');
+            
+            if (messageInput) messageInput.disabled = true;
+            if (sendButton) sendButton.disabled = true;
+            if (newChatBtn) newChatBtn.disabled = true;
+        }
+        
+        // 启用页面功能（登录后）
+        function enablePageFunctions() {
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const newChatBtn = document.getElementById('new-chat-btn');
+            
+            if (messageInput) messageInput.disabled = false;
+            if (sendButton) sendButton.disabled = false;
+            if (newChatBtn) newChatBtn.disabled = false;
+        }
+
+        // 切换登录/注册标签
+        function switchLoginTab(tab) {
+            const loginForm = document.getElementById('modal-login-form');
+            const registerForm = document.getElementById('modal-register-form');
+            const loginTab = document.getElementById('login-tab');
+            const registerTab = document.getElementById('register-tab');
+            
+            if (tab === 'login') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                loginTab.classList.add('active');
+                loginTab.style.color = '#00a8ff';
+                loginTab.style.borderBottom = '2px solid #00a8ff';
+                registerTab.classList.remove('active');
+                registerTab.style.color = '#666';
+                registerTab.style.borderBottom = '2px solid transparent';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                registerTab.classList.add('active');
+                registerTab.style.color = '#00a8ff';
+                registerTab.style.borderBottom = '2px solid #00a8ff';
+                loginTab.classList.remove('active');
+                loginTab.style.color = '#666';
+                loginTab.style.borderBottom = '2px solid transparent';
+            }
+        }
+
         // 页面加载时获取聊天历史和用户信息
         document.addEventListener('DOMContentLoaded', function() {
             updateLangButtons();
-            loadChatHistory();
-            loadUserInfo();
+            // 先检查登录状态
+            checkAuthStatus().then(isAuthenticated => {
+                if (isAuthenticated) {
+                    loadChatHistory();
+                }
+            });
             // 加载Ollama模型列表并设置模型选择器
             loadOllamaModels();
             setupModelSelector();
@@ -4641,7 +4810,108 @@
         function initializeApp() {
           // 在这里添加初始化逻辑
         }
+        
+        // 登录表单提交处理（在DOM加载后绑定）
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('modal-login-form');
+            const registerForm = document.getElementById('modal-register-form');
+            
+            if (loginForm) {
+                loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('modal-login-username').value;
+            const password = document.getElementById('modal-login-password').value;
+            
+            // 清除之前的错误信息
+            document.getElementById('modal-login-username-error').style.display = 'none';
+            document.getElementById('modal-login-password-error').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    // 登录成功，关闭弹窗并刷新页面
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('login-modal'));
+                    if (loginModal) {
+                        loginModal.hide();
+                    }
+                    // 刷新页面以加载用户信息
+                    window.location.reload();
+                } else {
+                    // 显示错误信息
+                    const errorElement = document.getElementById('modal-login-password-error');
+                    errorElement.textContent = data.message || '登录失败，请检查用户名和密码';
+                    errorElement.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('登录错误:', error);
+                const errorElement = document.getElementById('modal-login-password-error');
+                errorElement.textContent = '登录失败，请稍后重试';
+                errorElement.style.display = 'block';
+                }
+                });
+            }
+            
+            if (registerForm) {
+                registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('modal-register-username').value;
+            const password = document.getElementById('modal-register-password').value;
+            const confirmPassword = document.getElementById('modal-register-confirm-password').value;
+            
+            // 清除之前的错误信息
+            document.getElementById('modal-register-username-error').style.display = 'none';
+            document.getElementById('modal-register-password-error').style.display = 'none';
+            document.getElementById('modal-register-confirm-password-error').style.display = 'none';
+            
+            // 验证密码是否匹配
+            if (password !== confirmPassword) {
+                const errorElement = document.getElementById('modal-register-confirm-password-error');
+                errorElement.textContent = i18n.t('passwordMismatchRegister') || '密码不匹配';
+                errorElement.style.display = 'block';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    // 注册成功，切换到登录表单
+                    switchLoginTab('login');
+                    alert(i18n.t('registerSuccess') || '注册成功，请登录');
+                    // 清空注册表单
+                    document.getElementById('modal-register-username').value = '';
+                    document.getElementById('modal-register-password').value = '';
+                    document.getElementById('modal-register-confirm-password').value = '';
+                } else {
+                    // 显示错误信息
+                    const errorElement = document.getElementById('modal-register-username-error');
+                    errorElement.textContent = data.message || '注册失败，用户名可能已存在';
+                    errorElement.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('注册错误:', error);
+                const errorElement = document.getElementById('modal-register-username-error');
+                errorElement.textContent = '注册失败，请稍后重试';
+                errorElement.style.display = 'block';
+                }
+                });
+            }
+        });
     </script>
 </body>
-</html>
 </html>

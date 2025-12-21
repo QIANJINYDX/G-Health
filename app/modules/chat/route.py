@@ -238,10 +238,23 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @chat_bp.route('/')
-@login_required
 def chat():
     """聊天页面"""
+    # 允许未登录用户访问，但会在前端检查登录状态
     return render_template('chat.html')
+
+@chat_bp.route('/check-auth', methods=['GET'])
+def check_auth():
+    """检查用户登录状态"""
+    if 'user_id' in session:
+        return jsonify({
+            'authenticated': True,
+            'user_id': session['user_id']
+        })
+    else:
+        return jsonify({
+            'authenticated': False
+        })
 
 @chat_bp.route('/sessions', methods=['GET'])
 @login_required
