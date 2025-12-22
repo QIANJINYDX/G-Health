@@ -19,164 +19,73 @@ from ollama import Client
 import re
 from app.config.risk_assessment.config import risk_types
 from PIL import Image
-import torch
-from torchvision import transforms, models
-import torch.nn.functional as F
-from autogluon.multimodal import MultiModalPredictor
-# from IPython.display import Image, display
-from ultralytics import YOLO
 import base64
 import io
 import json
 import time
 
-router_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-label2idx = {'breast_cancer': 0, 'chest_cancer': 1, 'eye_disease': 2, 'skin_cancer': 3}
-idx2label = {v: k for k, v in label2idx.items()}
+def predict_image_type_via_api(image_path, risk_model_service_url, threshold=0.9):
+    """
+    通过API调用风险评估服务预测图片类型
+    
+    Args:
+        image_path: 图片路径
+        risk_model_service_url: 风险评估服务URL
+        threshold: 置信度阈值
+    
+    Returns:
+        图片类型字符串
+    """
+    try:
+        with open(image_path, 'rb') as f:
+            files = {'image': f}
+            data = {'threshold': str(threshold)}
+            response = requests.post(
+                f"{risk_model_service_url}/predict-image-type",
+                files=files,
+                data=data,
+                timeout=30
+            )
+            if response.status_code == 200:
+                result = response.json()
+                return result.get('image_type', 'Other_PICTURE')
+            else:
+                print(f"预测图片类型API调用失败: {response.status_code}")
+                return "Other_PICTURE"
+    except Exception as e:
+        print(f"预测图片类型时出错: {str(e)}")
+        return "Other_PICTURE"
 
-# model_dict={
-#     "eye_disease":{
-#         "DN":{
-#             "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/eye_disease/DN"),
-#             "label":"脉络膜小疣"
-#         },
-#         "DR":{
-#             "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/eye_disease/DR"),
-#             "label":"糖网病"
-#         },
-#         "MH":{
-#             "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/eye_disease/MH"),
-#             "label":"屈光介质混浊"
-#         },
-#         "Normal":{
-#             "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/eye_disease/Normal"),
-#             "label":"正常"
-#         },
-#         "ODC":{
-#             "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/eye_disease/ODC"),
-#             "label":"视神经盘凹陷"
-#         },
-#         "TSLN":{
-#             "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/eye_disease/TSLN"),
-#             "label":"豹纹状病变"
-#         }
-#     },
-#     "skin_cancer":{
-#         "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/Skin_Cancer"),
-#         "label":"皮肤癌"
-#     },
-#     "chest_cancer":{
-#         "model":MultiModalPredictor.load("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/chest_cancer_detection"),
-#         "label":"胸部肿瘤"
-#     },
-#     "breast_cancer":{
-#         "model":YOLO("/home/dxye/Program/PhysicalExaminationAgent/client/risk_assessment/models/breast_cancer_detection/breast_cancer_detection/weights/best.pt"),
-#         "label":"乳腺癌"
-#     }
-# }
-
-def Imageprediction(image_path,img_type,model_dict):
-    if img_type == "eye_disease":
-        info = "眼底疾病风险评估结果："
-        # 先预测是否正常
-        predictions = model_dict['eye_disease']['Normal']['model'].predict({'image': [image_path]})[0]
-        proba = model_dict['eye_disease']['Normal']['model'].predict_proba({'image': [image_path]})[0]
-        if predictions == 1:
-            return {"info":info,"label":"Healthy"}
-        else:
-            for key,value in model_dict['eye_disease'].items():
-                if key != "Normal":
-                    predictions = value['model'].predict({'image': [image_path]})[0]
-                    proba = value['model'].predict_proba({'image': [image_path]})[0]
-                    if predictions == 1:
-                        info += value['label']+",概率："+str(round(proba[predictions]*100,2))+"%"+"，"
-            if info.endswith("，"):
-                info = info[:-1]
-            return {"info":info,"label":"No Healthy"}
-    elif img_type == "skin_cancer":
-        info = "皮肤癌风险评估结果："
-        predictions = model_dict['skin_cancer']['model'].predict({'image': [image_path]})[0]
-        proba = model_dict['skin_cancer']['model'].predict_proba({'image': [image_path]})[0]
-        if predictions == 0:
-            info += "光化性角化病,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 1:
-            info += "基底细胞癌,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 2:
-            info += "良性角化病样病变,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 3:
-            info += "皮肤纤维瘤,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 4:
-            info += "黑色素瘤,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 5:
-            info += "黑色素细胞痣,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 6:
-            info += "血管病变,概率："+str(round(proba[predictions]*100,2))+"%"
-        return {"info":info,"label":"No Healthy"}
-    elif img_type == "chest_cancer":
-        info = "胸部肿瘤风险评估结果："
-        predictions = model_dict['chest_cancer']['model'].predict({'image': [image_path]})[0]
-        proba = model_dict['chest_cancer']['model'].predict_proba({'image': [image_path]})[0]
-        if predictions == 0:
-            return {"info":info,"label":"Healthy"}
-        elif predictions == 1:
-            info += "腺癌,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 2:
-            info += "大细胞癌,概率："+str(round(proba[predictions]*100,2))+"%"
-        elif predictions == 3:
-            info += "鳞状细胞癌,概率："+str(round(proba[predictions]*100,2))+"%"
-        return {"info":info,"label":"No Healthy"}
-    elif img_type == "breast_cancer":
-        info = "乳腺癌风险评估结果："
-        results=model_dict['breast_cancer']['model'].predict(image_path)[0]
-        results_cls=results.boxes.cls.to("cpu").tolist()
-        results_conf=results.boxes.conf.to("cpu").tolist()
-        for i in range(len(results_cls)):
-            if results_cls[i] == 1:
-                info += "良性肿瘤,概率："+str(round(results_conf[i]*100,2))+"%"
-            elif results_cls[i] == 2:
-                info += "恶性肿瘤,概率："+str(round(results_conf[i]*100,2))+"%"
-            elif results_cls[i] == 0:
-                info += "健康,概率："+str(round(results_conf[i]*100,2))+"%"
-        im_bgr = results.plot()
-        im_rgb = Image.fromarray(im_bgr[..., ::-1])  # RGB-order PIL image
-
-        return {"results":results,"info":info,"label":"Analyzed","image":im_rgb}
-    return {"info":"","label":"Other"}
-
-
-def load_router_model(model_path):
-    model = models.resnet18(pretrained=False)
-    model.fc = torch.nn.Linear(model.fc.in_features, len(label2idx))
-    model.load_state_dict(torch.load(model_path, map_location=router_device))
-    model = model.to(router_device)
-    model.eval()
-    return model
-def predict_image(input_data, model, threshold=0.9):
-
-    if isinstance(input_data, str):
-        image = Image.open(input_data).convert("RGB")
-    elif isinstance(input_data, Image.Image):
-        image = input_data.convert("RGB")
-    else:
-        raise ValueError("Input must be a file path or PIL.Image")
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225])
-    ])
-
-    image_tensor = transform(image).unsqueeze(0).to(router_device)
-
-    with torch.no_grad():
-        outputs = model(image_tensor)
-        probs = F.softmax(outputs, dim=1).cpu().numpy().flatten()
-        max_prob = probs.max()
-        pred_idx = probs.argmax()
-        if max_prob < threshold:
-            return "Other_PICTURE"
-        # print(max_prob)
-        return idx2label[pred_idx]
+def predict_image_via_api(image_path, img_type, risk_model_service_url):
+    """
+    通过API调用风险评估服务进行图片预测
+    
+    Args:
+        image_path: 图片路径
+        img_type: 图片类型
+        risk_model_service_url: 风险评估服务URL
+    
+    Returns:
+        预测结果字典
+    """
+    try:
+        with open(image_path, 'rb') as f:
+            files = {'image': f}
+            data = {'image_type': img_type}
+            response = requests.post(
+                f"{risk_model_service_url}/predict-image",
+                files=files,
+                data=data,
+                timeout=300
+            )
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"图片预测API调用失败: {response.status_code}")
+                return {"info": "预测失败", "label": "Error"}
+    except Exception as e:
+        print(f"图片预测时出错: {str(e)}")
+        return {"info": f"预测出错: {str(e)}", "label": "Error"}
 
 def pil_to_base64(image):
     """将PIL图像转换为base64字符串"""
@@ -184,8 +93,6 @@ def pil_to_base64(image):
     image.save(buffer, format='PNG')
     img_str = base64.b64encode(buffer.getvalue()).decode()
     return f"data:image/png;base64,{img_str}"
-
-router_model = load_router_model("risk_assessment/models/router_resnet18.pth")
 
 
 chat_controller = ChatController()
@@ -401,7 +308,8 @@ def send_message(session_id):
             # 使用在外部函数中已获取的 language 变量（通过闭包访问）
             # language 已在 send_message 函数中从请求中获取
             # 初始化消息变量
-            current_message = message
+            current_message = message  # 用于判断逻辑和消息历史（不包含护士提示词）
+            current_message_for_ai = message  # 用于传递给AI服务（包含护士提示词）
             
             if not current_message and not files:
                 yield f"data: {json.dumps({'type': 'error', 'message': '消息和文件不能同时为空'})}\n\n"
@@ -413,6 +321,7 @@ def send_message(session_id):
             # 处理文件上传
             uploaded_files = []
             image_messages = []
+            has_risk_assessment_image = False  # 标记是否进行了风险评估图片预测
             if files:
                 show_message = current_message
                 is_image_class = False
@@ -446,28 +355,52 @@ def send_message(session_id):
                         yield f"data: {json.dumps({'type': 'file_processing', 'filename': filename})}\n\n"
                         
                         try:
-                            file_content = ""
+                            file_content = ""  # 用于判断逻辑和消息历史（不包含护士提示词）
+                            file_content_for_ai = ""  # 用于传递给AI的内容（包含护士提示词）
                             if filename.lower().endswith('.pdf'):
                                 file_content = detect_pdf_content(file_path)
+                                file_content_for_ai = file_content
                             elif filename.lower().endswith(('.ppt', '.pptx', '.doc', '.docx')):
                                 file_content = detect_office_content(file_path)
+                                file_content_for_ai = file_content
                             elif filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                                img_type = predict_image(file_path, router_model)
+                                # 通过API调用风险评估服务预测图片类型
+                                try:
+                                    risk_model_service_url = current_app.config.get('RISK_MODEL_SERVICE_URL', 'http://localhost:5002')
+                                    img_type = predict_image_type_via_api(file_path, risk_model_service_url)
+                                except Exception as e:
+                                    print(f"预测图片类型失败: {str(e)}")
+                                    img_type = "Other_PICTURE"
+                                
                                 if img_type == "Other_PICTURE":
                                     file_content = detect_image_content(file_path)
+                                    file_content_for_ai = file_content
                                 else:
-                                    file_result = Imageprediction(file_path, img_type, model_dict)
-                                    # 使用已在函数开始处定义的语言参数
-                                    nurse_prompt_image = get_prompt('NURSE_PROMPT_IMAGE', language)
-                                    file_content = file_result["info"] + nurse_prompt_image
-                                    if img_type == "breast_cancer":
-                                        is_image_class = True
-                                        file_image = file_result["image"]
-                                        image_base64 = pil_to_base64(file_image)
-                                        ob_image_base64s.append(image_base64)
+                                    # 通过API调用风险评估服务进行图片预测
+                                    # 标记已进行风险评估图片预测，后续不触发体检报告工作流
+                                    has_risk_assessment_image = True
+                                    try:
+                                        risk_model_service_url = current_app.config.get('RISK_MODEL_SERVICE_URL', 'http://localhost:5002')
+                                        file_result = predict_image_via_api(file_path, img_type, risk_model_service_url)
+                                        # 文件内容不包含护士提示词（用于消息历史和判断逻辑）
+                                        file_content = file_result.get("info", "")
+                                        # 用于传递给AI的内容包含护士提示词
+                                        nurse_prompt_image = get_prompt('NURSE_PROMPT_IMAGE', language)
+                                        file_content_for_ai = file_content + nurse_prompt_image
+                                        if img_type == "breast_cancer" and "image_base64" in file_result:
+                                            is_image_class = True
+                                            image_base64 = file_result["image_base64"]
+                                            ob_image_base64s.append(image_base64)
+                                    except Exception as e:
+                                        print(f"图片预测失败: {str(e)}")
+                                        file_content = detect_image_content(file_path)
+                                        file_content_for_ai = file_content
                             
                             if file_content:
+                                # current_message用于消息历史和判断逻辑（不包含护士提示词）
                                 current_message = f"{current_message}\n\n以下是上传的文件内容：\n{file_content}" if current_message else f"以下是上传的文件内容：\n{file_content}"
+                                # current_message_for_ai用于传递给AI服务（包含护士提示词）
+                                current_message_for_ai = f"{current_message_for_ai}\n\n以下是上传的文件内容：\n{file_content_for_ai}" if current_message_for_ai else f"以下是上传的文件内容：\n{file_content_for_ai}"
                         except Exception as e:
                             yield f"data: {json.dumps({'type': 'error', 'message': f'文件解析错误：{str(e)}'})}\n\n"
                             return
@@ -481,7 +414,8 @@ def send_message(session_id):
                 # 实时推送图片消息到SSE流
                 
                 if uploaded_files:
-                    user_message = chat_controller.add_message(session_id, show_message, is_user=True, message_type=1, is_visible=True)
+                    # 先保存原始用户消息（不包含文件信息）
+                    user_message = chat_controller.add_message(session_id, show_message if show_message else "上传了文件", is_user=True, message_type=1, is_visible=True)
                     
                     # 将文件关联到用户消息
                     if saved_files:
@@ -494,15 +428,20 @@ def send_message(session_id):
                                 chat_message_id=user_message.id
                             )
                     
+                    # 然后创建图片消息（如果有），确保它们的创建时间晚于用户消息
+                    # 这样在按时间排序时，图片消息会显示在用户消息之后
                     image_messages = []
                     if is_image_class:
+                        import time
+                        time.sleep(0.01)  # 短暂延迟，确保时间戳不同
                         for image_base64 in ob_image_base64s:
                             image_message = chat_controller.add_message(session_id, "你的检测结果:", is_user=False, message_type=1, is_visible=True, has_image=True, image_data=image_base64)
                             image_messages.append(image_message)
-                    chat_controller.add_message(session_id, current_message, is_user=True, message_type=0, is_visible=False)
 
                     if image_messages:
                         for img_msg in image_messages:
+                            # 只发送message_id，避免base64数据过大导致JSON截断
+                            # 前端会通过API获取完整的图片数据
                             yield f"data: {json.dumps({'type': 'image_message', 'message_id': img_msg.id, 'content': img_msg.content, 'has_image': True})}\n\n"
                     
             elif current_message != "":
@@ -513,7 +452,8 @@ def send_message(session_id):
             
             # 调用AI服务获取流式回复
             try:
-                messages = chat_controller.get_session_messages(session_id, vis=False)
+                # 只获取可见消息，不包含文件处理过程中的临时消息
+                messages = chat_controller.get_session_messages(session_id, vis=True)
                 formatted_messages = []
                 last_role = None
                 
@@ -526,14 +466,23 @@ def send_message(session_id):
                     })
                     last_role = current_role
                 
+                # 如果最后一条消息不是用户消息，添加当前消息（使用包含护士提示词的版本用于AI上下文）
                 if formatted_messages and formatted_messages[-1]["role"] != "user":
                     formatted_messages.append({
                         "role": "user",
-                        "content": current_message
+                        "content": current_message_for_ai  # 使用包含护士提示词的版本
                     })
                 # 判断最后一条消息是否涉及体检报告解析、健康指标（如血糖、血压、肝功能、BMI 等）、体检异常解释、健康建议或风险评估
-                is_call_report = is_call_report_workflow(current_message, ollama_client, language, model=model)
-                print(f"是否调用体检报告分析工作流: {is_call_report}, 使用模型: {model}")
+                # 如果已进行风险评估图片预测，则不触发体检报告工作流
+                is_call_report = False
+                if not has_risk_assessment_image:
+                    # 使用不包含护士提示词的版本进行判断
+                    print(f"当前消息: {current_message}","体检报告分析工作流触发判断器判断结果:")
+                    is_call_report = is_call_report_workflow(current_message, ollama_client, language, model=model)
+                    print(f"是否调用体检报告分析工作流: {is_call_report}, 使用模型: {model}")
+                else:
+                    print(f"已进行风险评估图片预测，跳过体检报告工作流判断")
+                
                 if is_call_report:
                     # 开始体检报告流式工作流
                     yield f"data: {json.dumps({'type': 'report_workflow_start'})}\n\n"
@@ -547,8 +496,8 @@ def send_message(session_id):
                     for m in dialogue_msgs:
                         role_cn = "用户" if m.is_user else "医生"
                         dialogue_text += f"{role_cn}：{m.content}\n"
-                    if current_message:
-                        dialogue_text += f"用户：{current_message}\n"
+                    if current_message_for_ai:
+                        dialogue_text += f"用户：{current_message_for_ai}\n"
 
                     # 执行流式工作流并逐段发送
                     workflow_full = ""
@@ -589,6 +538,7 @@ def send_message(session_id):
                     follow_up_questions = None
                     try:
                         from app.util.clinical_analyst import generate_follow_up_questions
+                        # 使用不包含护士提示词的版本生成后续追问建议
                         follow_up_questions = generate_follow_up_questions(current_message or "", workflow_full, ollama_client, language, model=model)
                     except Exception as follow_up_error:
                         print(f"生成后续追问建议失败: {str(follow_up_error)}")
@@ -681,7 +631,7 @@ def send_message(session_id):
                     try:
                         from app.util.clinical_analyst import generate_follow_up_questions
                         
-                        # 生成后续追问建议
+                        # 生成后续追问建议（使用不包含护士提示词的版本）
                         follow_up_questions = generate_follow_up_questions(current_message, full_response, ollama_client, language, model=model)
                         print("流式输出后的引导问题：",follow_up_questions)
                         

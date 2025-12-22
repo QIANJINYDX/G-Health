@@ -2228,19 +2228,45 @@
                     `;
                     i18n.updatePage();
                 } else {
-                                    // 批量渲染消息，避免频繁的DOM操作
-                const fragment = document.createDocumentFragment();
-                messages.forEach(message => {
-                    // 调试：检查消息数据
-                    if (message.role === 'assistant' && message.follow_up_questions) {
-                        console.log('发现AI消息包含引导问题:', message.id, message.follow_up_questions);
-                    }
-                    const messageElement = createMessageElement(message);
-                    if (messageElement) {
-                        fragment.appendChild(messageElement);
-                    }
-                });
-                chatMessages.appendChild(fragment);
+                    // 对消息进行排序，确保图片消息（检测结果）显示在用户消息之后、AI回复之前
+                    const sortedMessages = [...messages].sort((a, b) => {
+                        // 首先按创建时间排序
+                        const timeA = new Date(a.created_at).getTime();
+                        const timeB = new Date(b.created_at).getTime();
+                        
+                        // 如果时间相同或非常接近（2秒内），进行特殊排序
+                        if (Math.abs(timeA - timeB) < 2000) {
+                            // 图片消息（has_image=true, role=assistant, message_type=1）
+                            const aIsImage = a.has_image && a.role === 'assistant' && a.message_type === 1;
+                            const bIsImage = b.has_image && b.role === 'assistant' && b.message_type === 1;
+                            const aIsUser = a.role === 'user' && a.message_type === 1;  // 文件上传的用户消息
+                            const bIsUser = b.role === 'user' && b.message_type === 1;
+                            
+                            // 如果一个是用户消息（文件上传），一个是图片消息，用户消息在前
+                            if (aIsUser && bIsImage) return -1;
+                            if (aIsImage && bIsUser) return 1;
+                            
+                            // 如果都是图片消息，按时间排序
+                            if (aIsImage && bIsImage) return timeA - timeB;
+                        }
+                        
+                        // 默认按时间排序
+                        return timeA - timeB;
+                    });
+                    
+                    // 批量渲染消息，避免频繁的DOM操作
+                    const fragment = document.createDocumentFragment();
+                    sortedMessages.forEach(message => {
+                        // 调试：检查消息数据
+                        if (message.role === 'assistant' && message.follow_up_questions) {
+                            console.log('发现AI消息包含引导问题:', message.id, message.follow_up_questions);
+                        }
+                        const messageElement = createMessageElement(message);
+                        if (messageElement) {
+                            fragment.appendChild(messageElement);
+                        }
+                    });
+                    chatMessages.appendChild(fragment);
                 }
                 
                 // 更新活动状态 - 使用data-session-id属性
@@ -3254,12 +3280,10 @@
                                         
                                     case 'image_message':
                                       console.log('图片消息:', data);
-                                        // 拉取图片数据
-                                        fetch(`/api/v1/chat/messages/${data.message_id}/image`)
-                                          .then(res => res.json())
-                                          .then(imgData => {
-                                            data.image_data = imgData.image_data;
-                                            // 创建图片消息DOM但不插入
+                                        // 通过API获取图片数据（避免base64数据过大导致JSON截断）
+                                        const processImageMessage = (imageData) => {
+                                            data.image_data = imageData;
+                                            // 创建图片消息DOM
                                             const tempDiv = document.createElement('div');
                                             appendMessage({
                                               id: data.message_id,
@@ -3270,14 +3294,69 @@
                                               has_image: true,
                                               image_data: data.image_data
                                             }, tempDiv);
-                                            // 插入到当前AI回复消息块前面
-                                            const chatMessages = document.getElementById('chat-messages');
-                                            const aiMessageBlock = chatMessages.querySelector('.mb-3:last-child');
-                                            if (aiMessageBlock) {
-                                              chatMessages.insertBefore(tempDiv.firstChild, aiMessageBlock);
-                                            } else {
-                                              chatMessages.appendChild(tempDiv.firstChild);
+                                            
+                                            // 获取要插入的节点（应该是message-wrapper）
+                                            const messageWrapper = tempDiv.querySelector('.message-wrapper') || tempDiv.firstChild;
+                                            if (!messageWrapper) {
+                                                console.error('无法创建图片消息节点');
+                                                return;
                                             }
+                                            
+                                            // 插入到聊天消息列表
+                                            const chatMessages = document.getElementById('chat-messages');
+                                            if (!chatMessages) {
+                                                console.error('找不到聊天消息容器');
+                                                return;
+                                            }
+                                            
+                                            // 查找最后一个用户消息（文件上传消息），将图片消息插入到它之后
+                                            const allMessageWrappers = Array.from(chatMessages.querySelectorAll('.message-wrapper'));
+                                            let lastUserMessageWrapper = null;
+                                            
+                                            // 从后往前查找最后一个用户消息wrapper（包含user-message-card的wrapper）
+                                            for (let i = allMessageWrappers.length - 1; i >= 0; i--) {
+                                                const wrapper = allMessageWrappers[i];
+                                                // 检查是否包含用户消息卡片
+                                                const userMessageCard = wrapper.querySelector('.user-message-card');
+                                                if (userMessageCard) {
+                                                    lastUserMessageWrapper = wrapper;
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            // 如果找到用户消息wrapper，将图片消息插入到它之后
+                                            if (lastUserMessageWrapper) {
+                                                // 插入到用户消息wrapper之后
+                                                if (lastUserMessageWrapper.nextSibling) {
+                                                    chatMessages.insertBefore(messageWrapper, lastUserMessageWrapper.nextSibling);
+                                                } else {
+                                                    chatMessages.appendChild(messageWrapper);
+                                                }
+                                            } else {
+                                                // 如果没找到用户消息，查找AI加载容器，插入到它之前
+                                                const aiLoadingContainer = chatMessages.querySelector('#ai-loading-container');
+                                                if (aiLoadingContainer) {
+                                                    chatMessages.insertBefore(messageWrapper, aiLoadingContainer);
+                                                } else {
+                                                    // 否则追加到末尾
+                                                    chatMessages.appendChild(messageWrapper);
+                                                }
+                                            }
+                                            
+                                            // 滚动到底部以显示图片
+                                            setTimeout(() => {
+                                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                                            }, 100);
+                                        };
+                                        
+                                        // 始终通过API获取图片数据，避免base64数据过大导致JSON截断
+                                        fetch(`/api/v1/chat/messages/${data.message_id}/image`)
+                                          .then(res => res.json())
+                                          .then(imgData => {
+                                            processImageMessage(imgData.image_data);
+                                          })
+                                          .catch(err => {
+                                            console.error('获取图片数据失败:', err);
                                           });
                                         break;
                                         

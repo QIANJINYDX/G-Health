@@ -7,12 +7,18 @@ import shap
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from autogluon.tabular import TabularPredictor
+from autogluon.multimodal import MultiModalPredictor
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from IPython.core.display import HTML
 import base64
 from io import BytesIO
 import mpld3
+from PIL import Image
+from ultralytics import YOLO
+import torch
+from torchvision import transforms, models
+import torch.nn.functional as F
 
 # 设置 matplotlib 字体
 plt.rcParams['font.family'] = 'Noto Sans CJK JP'
@@ -320,6 +326,239 @@ class ModelManager:
 # 初始化模型管理器
 model_manager = ModelManager()
 
+
+class ImagePredictionManager:
+    """图片预测模型管理器"""
+    def __init__(self):
+        self.model_dict = {}
+        self.router_model = None
+        self.router_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.label2idx = {'breast_cancer': 0, 'chest_cancer': 1, 'eye_disease': 2, 'skin_cancer': 3}
+        self.idx2label = {v: k for k, v in self.label2idx.items()}
+        self.load_all_image_models()
+        self.load_router_model()
+    
+    def load_all_image_models(self):
+        """加载所有图片预测模型"""
+        try:
+            # 加载眼底疾病模型
+            eye_disease_models = {
+                "DN": {
+                    "model": MultiModalPredictor.load("risk_assessment/models/eye_disease/DN"),
+                    "label": "脉络膜小疣"
+                },
+                "DR": {
+                    "model": MultiModalPredictor.load("risk_assessment/models/eye_disease/DR"),
+                    "label": "糖网病"
+                },
+                "MH": {
+                    "model": MultiModalPredictor.load("risk_assessment/models/eye_disease/MH"),
+                    "label": "屈光介质混浊"
+                },
+                "Normal": {
+                    "model": MultiModalPredictor.load("risk_assessment/models/eye_disease/Normal"),
+                    "label": "正常"
+                },
+                "ODC": {
+                    "model": MultiModalPredictor.load("risk_assessment/models/eye_disease/ODC"),
+                    "label": "视神经盘凹陷"
+                },
+                "TSLN": {
+                    "model": MultiModalPredictor.load("risk_assessment/models/eye_disease/TSLN"),
+                    "label": "豹纹状病变"
+                }
+            }
+            self.model_dict["eye_disease"] = eye_disease_models
+            print("眼底疾病模型加载完成")
+            
+            # 加载皮肤癌模型
+            self.model_dict["skin_cancer"] = {
+                "model": MultiModalPredictor.load("risk_assessment/models/Skin_Cancer"),
+                "label": "皮肤癌"
+            }
+            print("皮肤癌模型加载完成")
+            
+            # 加载胸部肿瘤模型
+            self.model_dict["chest_cancer"] = {
+                "model": MultiModalPredictor.load("risk_assessment/models/chest_cancer_detection"),
+                "label": "胸部肿瘤"
+            }
+            print("胸部肿瘤模型加载完成")
+            
+            # 加载乳腺癌模型
+            self.model_dict["breast_cancer"] = {
+                "model": YOLO("risk_assessment/models/breast_cancer_detection/breast_cancer_detection/weights/best.pt"),
+                "label": "乳腺癌"
+            }
+            print("乳腺癌模型加载完成")
+            
+        except Exception as e:
+            print(f"加载图片预测模型时出错: {str(e)}")
+            # 如果模型文件不存在，创建空的模型字典
+            self.model_dict = {}
+    
+    def load_router_model(self):
+        """加载路由模型"""
+        try:
+            model = models.resnet18(pretrained=False)
+            model.fc = torch.nn.Linear(model.fc.in_features, len(self.label2idx))
+            model.load_state_dict(torch.load("risk_assessment/models/router_resnet18.pth", map_location=self.router_device))
+            model = model.to(self.router_device)
+            model.eval()
+            self.router_model = model
+            print("路由模型加载完成")
+        except Exception as e:
+            print(f"加载路由模型时出错: {str(e)}")
+            self.router_model = None
+    
+    def predict_image_type(self, input_data, threshold=0.9):
+        """
+        预测图片类型（路由判断）
+        
+        Args:
+            input_data: 图片路径或PIL.Image对象
+            threshold: 置信度阈值，默认0.9
+        
+        Returns:
+            图片类型字符串 ('breast_cancer', 'chest_cancer', 'eye_disease', 'skin_cancer', 'Other_PICTURE')
+        """
+        if self.router_model is None:
+            return "Other_PICTURE"
+        
+        try:
+            if isinstance(input_data, str):
+                image = Image.open(input_data).convert("RGB")
+            elif isinstance(input_data, Image.Image):
+                image = input_data.convert("RGB")
+            else:
+                raise ValueError("Input must be a file path or PIL.Image")
+            
+            transform = transforms.Compose([
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                    std=[0.229, 0.224, 0.225])
+            ])
+            
+            image_tensor = transform(image).unsqueeze(0).to(self.router_device)
+            
+            with torch.no_grad():
+                outputs = self.router_model(image_tensor)
+                probs = F.softmax(outputs, dim=1).cpu().numpy().flatten()
+                max_prob = probs.max()
+                pred_idx = probs.argmax()
+                if max_prob < threshold:
+                    return "Other_PICTURE"
+                return self.idx2label[pred_idx]
+        except Exception as e:
+            print(f"路由模型预测出错: {str(e)}")
+            return "Other_PICTURE"
+    
+    def predict_image(self, image_path, img_type):
+        """
+        预测图片类型
+        
+        Args:
+            image_path: 图片路径
+            img_type: 图片类型 ('eye_disease', 'skin_cancer', 'chest_cancer', 'breast_cancer')
+        
+        Returns:
+            预测结果字典
+        """
+        if img_type == "eye_disease":
+            info = "眼底疾病风险评估结果："
+            # 先预测是否正常
+            if "eye_disease" not in self.model_dict or "Normal" not in self.model_dict["eye_disease"]:
+                return {"info": "模型未加载", "label": "Error"}
+            
+            predictions = self.model_dict['eye_disease']['Normal']['model'].predict({'image': [image_path]})[0]
+            proba = self.model_dict['eye_disease']['Normal']['model'].predict_proba({'image': [image_path]})[0]
+            if predictions == 1:
+                return {"info": info, "label": "Healthy"}
+            else:
+                for key, value in self.model_dict['eye_disease'].items():
+                    if key != "Normal":
+                        predictions = value['model'].predict({'image': [image_path]})[0]
+                        proba = value['model'].predict_proba({'image': [image_path]})[0]
+                        if predictions == 1:
+                            info += value['label'] + ",概率：" + str(round(proba[predictions] * 100, 2)) + "%" + "，"
+                if info.endswith("，"):
+                    info = info[:-1]
+                return {"info": info, "label": "No Healthy"}
+        
+        elif img_type == "skin_cancer":
+            info = "皮肤癌风险评估结果："
+            if "skin_cancer" not in self.model_dict:
+                return {"info": "模型未加载", "label": "Error"}
+            
+            predictions = self.model_dict['skin_cancer']['model'].predict({'image': [image_path]})[0]
+            proba = self.model_dict['skin_cancer']['model'].predict_proba({'image': [image_path]})[0]
+            if predictions == 0:
+                info += "光化性角化病,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 1:
+                info += "基底细胞癌,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 2:
+                info += "良性角化病样病变,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 3:
+                info += "皮肤纤维瘤,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 4:
+                info += "黑色素瘤,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 5:
+                info += "黑色素细胞痣,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 6:
+                info += "血管病变,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            return {"info": info, "label": "No Healthy"}
+        
+        elif img_type == "chest_cancer":
+            info = "胸部肿瘤风险评估结果："
+            if "chest_cancer" not in self.model_dict:
+                return {"info": "模型未加载", "label": "Error"}
+            
+            predictions = self.model_dict['chest_cancer']['model'].predict({'image': [image_path]})[0]
+            proba = self.model_dict['chest_cancer']['model'].predict_proba({'image': [image_path]})[0]
+            if predictions == 0:
+                return {"info": info, "label": "Healthy"}
+            elif predictions == 1:
+                info += "腺癌,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 2:
+                info += "大细胞癌,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            elif predictions == 3:
+                info += "鳞状细胞癌,概率：" + str(round(proba[predictions] * 100, 2)) + "%"
+            return {"info": info, "label": "No Healthy"}
+        
+        elif img_type == "breast_cancer":
+            info = "乳腺癌风险评估结果："
+            if "breast_cancer" not in self.model_dict:
+                return {"info": "模型未加载", "label": "Error"}
+            
+            results = self.model_dict['breast_cancer']['model'].predict(image_path)[0]
+            results_cls = results.boxes.cls.to("cpu").tolist()
+            results_conf = results.boxes.conf.to("cpu").tolist()
+            for i in range(len(results_cls)):
+                if results_cls[i] == 1:
+                    info += "良性肿瘤,概率：" + str(round(results_conf[i] * 100, 2)) + "%"
+                elif results_cls[i] == 2:
+                    info += "恶性肿瘤,概率：" + str(round(results_conf[i] * 100, 2)) + "%"
+                elif results_cls[i] == 0:
+                    info += "健康,概率：" + str(round(results_conf[i] * 100, 2)) + "%"
+            im_bgr = results.plot()
+            im_rgb = Image.fromarray(im_bgr[..., ::-1])  # RGB-order PIL image
+            
+            return {"results": results, "info": info, "label": "Analyzed", "image": im_rgb}
+        
+        return {"info": "", "label": "Other"}
+    
+    def pil_to_base64(self, image):
+        """将PIL图像转换为base64字符串"""
+        buffer = BytesIO()
+        image.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        return f"data:image/png;base64,{img_str}"
+
+
+# 初始化图片预测模型管理器
+image_prediction_manager = ImagePredictionManager()
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """健康检查接口"""
@@ -452,6 +691,91 @@ def model_info(model_name):
         'model_type': config['model_type'],
         'model_name': config['model_name']
     })
+
+@app.route('/predict-image-type', methods=['POST'])
+def predict_image_type():
+    """预测图片类型（路由判断）"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': '请提供图片文件'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': '文件名为空'}), 400
+        
+        # 保存临时文件
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp_file:
+            file.save(tmp_file.name)
+            tmp_path = tmp_file.name
+        
+        try:
+            # 获取阈值参数
+            threshold = float(request.form.get('threshold', 0.9))
+            
+            # 预测图片类型
+            img_type = image_prediction_manager.predict_image_type(tmp_path, threshold)
+            
+            return jsonify({
+                'image_type': img_type
+            })
+        finally:
+            # 删除临时文件
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    except Exception as e:
+        return jsonify({
+            'error': f'预测图片类型时发生错误: {str(e)}'
+        }), 500
+
+@app.route('/predict-image', methods=['POST'])
+def predict_image():
+    """图片预测"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': '请提供图片文件'}), 400
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': '文件名为空'}), 400
+        
+        # 获取图片类型参数
+        img_type = request.form.get('image_type')
+        if not img_type:
+            return jsonify({'error': '请提供图片类型参数'}), 400
+        
+        # 保存临时文件
+        import tempfile
+        import os
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp_file:
+            file.save(tmp_file.name)
+            tmp_path = tmp_file.name
+        
+        try:
+            # 进行图片预测
+            result = image_prediction_manager.predict_image(tmp_path, img_type)
+            
+            # 如果结果中包含图片，转换为base64
+            if 'image' in result:
+                result['image_base64'] = image_prediction_manager.pil_to_base64(result['image'])
+                # 移除PIL Image对象，因为无法序列化为JSON
+                del result['image']
+                if 'results' in result:
+                    # 移除YOLO结果对象，因为无法序列化
+                    del result['results']
+            
+            return jsonify(result)
+        finally:
+            # 删除临时文件
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+    
+    except Exception as e:
+        return jsonify({
+            'error': f'图片预测时发生错误: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     mode='development'
