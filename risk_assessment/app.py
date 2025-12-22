@@ -454,4 +454,14 @@ def model_info(model_name):
     })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5002, debug=True) 
+    mode='development'
+    mode='production'
+    if mode == 'development':
+        app.run(debug=True,use_reloader=False)
+    else:
+        from werkzeug.serving import run_simple
+        run_simple('0.0.0.0', 5002, app)
+    # finally:
+    #     print("risk_assessment_process.terminate()")
+    #     app.terminate()
+    #     app.wait()

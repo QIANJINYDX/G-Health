@@ -1825,7 +1825,7 @@ def generate_report(data):
     
     return "\n".join(report_lines)
 
-def interpret_abnormal_metrics(report: str, client: Client, language: str = 'zh') -> str:
+def interpret_abnormal_metrics(report: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> str:
     """
     解读异常指标
     
@@ -1833,6 +1833,7 @@ def interpret_abnormal_metrics(report: str, client: Client, language: str = 'zh'
         report: 报告信息
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     """
     prompt_template = get_prompt('ABNORMAL_METRIC_INTERPRETATION_PROMPT', language)
     prompt = prompt_template.format(report=report)
@@ -1840,6 +1841,7 @@ def interpret_abnormal_metrics(report: str, client: Client, language: str = 'zh'
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
                 client=client,
+                model=model,
                 use_mcp=False,
                 use_rag=False,
                 deep_think=True
@@ -1848,7 +1850,7 @@ def interpret_abnormal_metrics(report: str, client: Client, language: str = 'zh'
     except Exception as e:
         print(f"异常指标解读与建议错误: {str(e)}")
         return "异常指标解读与建议失败"
-def suggest_additional_tests(report: str, client: Client, language: str = 'zh') -> str:
+def suggest_additional_tests(report: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> str:
     """
     建议补充检查项目
     
@@ -1856,6 +1858,7 @@ def suggest_additional_tests(report: str, client: Client, language: str = 'zh') 
         report: 分析文本
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     """
     prompt_template = get_prompt('CHECKUP_FOLLOWUP_RECOMMENDATION_PROMPT', language)
     prompt = prompt_template.format(analysis_text=report)
@@ -1863,6 +1866,7 @@ def suggest_additional_tests(report: str, client: Client, language: str = 'zh') 
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_mcp=False,
             use_rag=False,
             deep_think=True
@@ -1871,7 +1875,7 @@ def suggest_additional_tests(report: str, client: Client, language: str = 'zh') 
     except Exception as e:
         print(f"检查项目建议错误: {str(e)}")
         return "检查项目建议失败"
-def recommend_departments(report: str, client: Client, language: str = 'zh') -> str:
+def recommend_departments(report: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> str:
     """
     推荐就诊科室
     
@@ -1879,6 +1883,7 @@ def recommend_departments(report: str, client: Client, language: str = 'zh') -> 
         report: 报告信息
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     """
     prompt_template = get_prompt('MAJOR_ABNORMAL_REFERRAL_PROMPT', language)
     prompt = prompt_template.format(report=report)
@@ -1886,6 +1891,7 @@ def recommend_departments(report: str, client: Client, language: str = 'zh') -> 
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_mcp=False,
             use_rag=False,
             deep_think=True
@@ -1894,7 +1900,7 @@ def recommend_departments(report: str, client: Client, language: str = 'zh') -> 
     except Exception as e:
         print(f"科室推荐错误: {str(e)}")
         return "科室推荐失败"
-def summarize_to_user(original_dialogue:str,report: str, interpretations: str, checkup_suggestions: str, department_recommendations: str, client: Client, language: str = 'zh') -> str:
+def summarize_to_user(original_dialogue:str,report: str, interpretations: str, checkup_suggestions: str, department_recommendations: str, client: Client, language: str = 'zh', model: str = "qwen3:32b") -> str:
     """
     为用户生成总结
     
@@ -1906,6 +1912,7 @@ def summarize_to_user(original_dialogue:str,report: str, interpretations: str, c
         department_recommendations: 科室推荐
         client: Ollama客户端实例
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
+        model: 使用的模型名称，默认为 qwen3:32b
     """
     prompt_template = get_prompt('SUMMARIZE_TO_USER_PROMPT', language)
     prompt = prompt_template.format(dialogue=original_dialogue, report=report, interpretations=interpretations, checkup_suggestions=checkup_suggestions, department_recommendations=department_recommendations)
@@ -1913,6 +1920,7 @@ def summarize_to_user(original_dialogue:str,report: str, interpretations: str, c
         result = chat_with_llm(
             messages=[{"role": "user", "content": prompt}],
             client=client,
+            model=model,
             use_mcp=False,
             use_rag=False,
             deep_think=True
@@ -2185,7 +2193,7 @@ def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh', 
         }
 
         # Step 4: 异常指标解读与建议
-        interpretations = interpret_abnormal_metrics(report_text, client, language)
+        interpretations = interpret_abnormal_metrics(report_text, client, language, model=model)
         logger.log_stage("Step4_异常指标解读", interpretations)
         
         interpretations_text = _unwrap_llm_result(interpretations)
@@ -2199,7 +2207,7 @@ def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh', 
             }
 
         # Step 5: 检查项目建议
-        checkup_suggestions = suggest_additional_tests(report_text, client, language)
+        checkup_suggestions = suggest_additional_tests(report_text, client, language, model=model)
         logger.log_stage("Step5_检查项目建议", checkup_suggestions)
         
         checkup_suggestions_text = _unwrap_llm_result(checkup_suggestions)
@@ -2213,7 +2221,7 @@ def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh', 
             }
 
         # Step 6: 科室推荐
-        department_recommendations = recommend_departments(report_text, client, language)
+        department_recommendations = recommend_departments(report_text, client, language, model=model)
         logger.log_stage("Step6_科室推荐", department_recommendations)
         
         department_recommendations_text = _unwrap_llm_result(department_recommendations)
@@ -2234,7 +2242,8 @@ def report_workflow_stream(dialogue: str, client: Client, language: str = 'zh', 
             checkup_suggestions=checkup_suggestions_text,
             department_recommendations=department_recommendations_text,
             client=client,
-            language=language
+            language=language,
+            model=model
         )
         logger.log_stage("Step7_最终汇总", final_response)
         

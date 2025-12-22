@@ -3599,15 +3599,55 @@
             try {
                 const form = formContainer.querySelector(`#risk-form-${modelId}`);
                 const formData = {};
-                form.querySelectorAll('input, select').forEach(input => {
-                    if (!input.value) {
-                        throw new Error(`${i18n.t('pleaseFill')} ${input.placeholder || input.previousElementSibling.textContent}`);
+                
+                // 收集所有必填字段的名称
+                const requiredFields = new Set();
+                form.querySelectorAll('input[required], select[required]').forEach(input => {
+                    requiredFields.add(input.name);
+                });
+                
+                // 处理radio按钮：只获取选中的radio按钮的值
+                const radioGroups = new Set();
+                form.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radioGroups.add(radio.name);
+                    if (radio.checked) {
+                        formData[radio.name] = radio.value;
                     }
-                    formData[input.name] = input.value;
+                });
+                
+                // 验证必填的radio按钮组是否已选择
+                radioGroups.forEach(groupName => {
+                    if (requiredFields.has(groupName) && !(groupName in formData)) {
+                        const label = form.querySelector(`label[for="${groupName}"]`) || 
+                                     form.querySelector(`input[name="${groupName}"]`)?.closest('.mb-3')?.querySelector('label');
+                        const fieldName = label ? label.textContent.trim() : groupName;
+                        throw new Error(`${i18n.t('pleaseFill')} ${fieldName}`);
+                    }
+                });
+                
+                // 处理其他类型的input（text, number等）和select
+                form.querySelectorAll('input:not([type="radio"]), select').forEach(input => {
+                    if (input.type === 'checkbox') {
+                        // 对于checkbox，如果选中则设置为true，否则不设置
+                        if (input.checked) {
+                            formData[input.name] = input.value || true;
+                        }
+                    } else {
+                        // 对于text、number等类型，检查是否有值
+                        if (input.required && !input.value) {
+                            const fieldName = input.placeholder || input.previousElementSibling?.textContent || input.name;
+                            throw new Error(`${i18n.t('pleaseFill')} ${fieldName}`);
+                        }
+                        if (input.value) {
+                            formData[input.name] = input.value;
+                        }
+                    }
                 });
                 // 添加语言参数
                 const currentLang = i18n.currentLang || 'zh';
                 formData['language'] = currentLang;
+                // 添加模型参数，使用当前选择的模型
+                formData['model'] = selectedModel;
                 
                 const submitButton = formContainer.querySelector('.btn-primary');
                 const isUpdateMode = existingAssessmentId !== null;

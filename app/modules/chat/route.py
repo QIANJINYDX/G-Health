@@ -1025,7 +1025,7 @@ def predict_risk(model_id, session_id):
             response = requests.post(
                 f"{risk_model_service_url}/predict/{model_info['model_name']}",
                 json=data,
-                timeout=120
+                timeout=300
             )
             response.raise_for_status()
             result = response.json()
