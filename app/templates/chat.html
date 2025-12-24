@@ -108,8 +108,8 @@
         /* 确保移动端菜单按钮可见 */
         .mobile-menu-btn {
           position: fixed !important;
-          top: 10px !important;
-          left: 10px !important;
+          top: 12px !important;
+          left: 12px !important;
           z-index: 1060 !important;
           background-color: #fff !important;
           border: 1px solid #dee2e6 !important;
@@ -121,6 +121,12 @@
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+        }
+        /* 移动端顶部横框中的模型选择器位置调整 */
+        @media (max-width: 767.98px) {
+          .chat-header-bar-content {
+            padding-left: 60px !important; /* 为菜单按钮留出空间 */
+          }
         }
         
         .mobile-menu-btn:hover {
@@ -198,12 +204,42 @@
       .main-content {
         padding-left: 240px; /* 侧边栏展开宽度 */
         padding-right: 0;
+        padding-top: 48px; /* 为顶部横框留出空间 */
         transition: padding-left 0.2s;
         width: 100%;
         max-width: 1100px;
         margin-left: auto;
         margin-right: auto;
         box-sizing: border-box;
+      }
+      /* 聊天顶部横框样式 - 类似 chat-input-bar */
+      .chat-header-bar {
+        position: fixed;
+        left: 240px;
+        right: 0;
+        top: 0;
+        z-index: 1050;
+        transition: left 0.2s;
+      }
+      .chat-header-bar > .container-lg {
+        width: 100%;
+        max-width: 1100px;
+        padding-left: 0;
+        padding-right: 0;
+      }
+      /* 侧边栏收起时，顶部横框左边距 */
+      #sidebar.collapsed ~ .chat-header-bar {
+        left: 56px !important;
+      }
+      /* 移动端顶部横框 */
+      @media (max-width: 767.98px) {
+        .chat-header-bar {
+          left: 0 !important;
+          right: 0 !important;
+        }
+        .chat-header-bar > .container-lg {
+          max-width: 100vw;
+        }
       }
       #chat-messages {
         width: 100%;
@@ -219,55 +255,71 @@
       #sidebar.collapsed + .main-content {
         padding-left: 56px !important;
       }
-      /* 模型选择框样式 */
+      /* 模型选择框样式 - 在顶部横框中 */
       #model-selector-container {
-        transition: margin-left 0.2s;
+        position: relative;
+        display: flex;
+        align-items: center;
       }
-      /* 侧边栏收起时，调整模型选择框位置 */
-      #sidebar.collapsed ~ .main-content #model-selector-container {
-        margin-left: 56px !important;
+      #model-selector-container-header {
+        position: relative;
+        display: flex;
+        align-items: center;
       }
       /* 模型选择框样式 - 无边框，大字体 */
       #model-select, #model-select-mobile {
         border: none !important;
         border-radius: 0 !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         font-weight: 500 !important;
-        padding: 6px 30px 6px 12px !important;
+        padding: 6px 30px 6px 8px !important;
         background: transparent !important;
         box-shadow: none !important;
         appearance: none !important;
         -webkit-appearance: none !important;
         -moz-appearance: none !important;
         cursor: pointer !important;
+        color: #333 !important;
+      }
+      #model-select:hover, #model-select-mobile:hover {
+        background-color: rgba(0, 0, 0, 0.03) !important;
+        border-radius: 4px !important;
       }
       #model-select:focus, #model-select-mobile:focus {
         border: none !important;
         outline: none !important;
         box-shadow: none !important;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+        border-radius: 4px !important;
       }
       /* 添加自定义下拉箭头（∨符号） */
-      #model-selector-container::after {
-        content: '∨';
+      #model-selector-container-header {
+        position: relative;
+      }
+      #model-selector-container-header::after {
+        content: '▼';
         position: absolute;
-        right: 20px;
+        right: 8px;
         top: 50%;
         transform: translateY(-50%);
         pointer-events: none;
-        font-size: 16px;
-        color: #333;
+        font-size: 10px;
+        color: #666;
         font-weight: normal;
         line-height: 1;
       }
+      #model-selector-container-mobile {
+        position: relative;
+      }
       #model-selector-container-mobile::after {
-        content: '∨';
+        content: '▼';
         position: absolute;
-        right: 18px;
+        right: 8px;
         top: 50%;
         transform: translateY(-50%);
         pointer-events: none;
-        font-size: 15px;
-        color: #333;
+        font-size: 10px;
+        color: #666;
         font-weight: normal;
         line-height: 1;
       }
@@ -284,7 +336,7 @@
       }
       /* 移动端模型选择框样式 */
       @media (max-width: 767.98px) {
-        #model-selector-container {
+        #model-selector-container-header {
           display: none !important;
         }
         #model-select-mobile {
@@ -1296,6 +1348,25 @@
           </div>
         </nav>
         <!-- 主内容区 -->
+        <!-- 聊天顶部横框 -->
+        <div class="chat-header-bar border-bottom py-2 bg-white d-flex align-items-center">
+          <!-- 模型选择器 - 最左边，在 container-lg 外面 -->
+          <div id="model-selector-container-header" class="d-none d-md-block" style="padding-left: 1rem;">
+            <select class="form-select form-select-sm" id="model-select" style="width: auto; min-width: 140px; max-width: 180px; border: none; background: transparent;" title="选择Ollama模型">
+              <option value="qwen3:32b" selected>qwen3:32b</option>
+            </select>
+          </div>
+          <!-- 移动端模型选择器 -->
+          <div id="model-selector-container-mobile" class="d-md-none" style="padding-left: 1rem;">
+            <select class="form-select form-select-sm" id="model-select-mobile" style="width: auto; min-width: 120px; max-width: 160px; border: none; background: transparent;" title="选择Ollama模型">
+              <option value="qwen3:32b" selected>qwen3:32b</option>
+            </select>
+          </div>
+          <!-- 其他内容区域 -->
+          <div class="container-lg flex-grow-1">
+            <!-- 预留位置，可以添加其他操作按钮 -->
+          </div>
+        </div>
         <div class="main-content">
           <div class="container-lg py-3" style="max-width: 1100px;">
             <main id="main-container">
@@ -1303,18 +1374,6 @@
               <button class="btn btn-outline-secondary d-md-none position-fixed top-0 start-0 m-2 mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" style="z-index: 1050;">
                 <svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
               </button>
-              <!-- 模型选择框 - 固定在左上角 -->
-              <div class="position-fixed top-0 start-0 p-2" style="z-index: 1040; margin-left: 240px; margin-top: 8px; position: relative;" id="model-selector-container">
-                <select class="form-select form-select-sm" id="model-select" style="width: auto; min-width: 140px; max-width: 180px;" title="选择Ollama模型">
-                  <option value="qwen3:32b" selected>qwen3:32b</option>
-                </select>
-              </div>
-              <!-- 移动端模型选择框 -->
-              <div class="position-fixed top-0 start-0 p-2 d-md-none" style="z-index: 1040; margin-left: 60px; margin-top: 8px; position: relative;" id="model-selector-container-mobile">
-                <select class="form-select form-select-sm" id="model-select-mobile" style="width: auto; min-width: 120px; max-width: 160px;" title="选择Ollama模型">
-                  <option value="qwen3:32b" selected>qwen3:32b</option>
-                </select>
-              </div>
               <!-- 聊天消息区域 -->
               <div id="chat-messages"></div>
             </main>
@@ -1392,16 +1451,11 @@
               <!-- 左侧功能按钮组 -->
               <div class="d-flex gap-2 flex-wrap">
                 <button class="btn btn-sm btn-outline-secondary" id="deep-think-button" onclick="toggleDeepThink()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <path d="M17.5 15.5A5.5 5.5 0 0 0 12 10V7.5A2.5 2.5 0 0 0 9.5 5h-1A2.5 2.5 0 0 0 6 7.5v1A2.5 2.5 0 0 0 8.5 11H10a2 2 0 0 1 2 2v1.5A2.5 2.5 0 0 0 14.5 17h1A2.5 2.5 0 0 0 18 14.5v-1A2.5 2.5 0 0 0 15.5 11H14"/>
-                  </svg>
+                  <img src="/static/images/thought-bubble.png" alt="深度思考" style="width: 16px; height: 16px; object-fit: contain; margin-right: 4px;">
                   <span data-i18n="deepThink">深度思考</span>
                 </button>
                 <button class="btn btn-sm btn-outline-secondary" id="rag-toggle-button" onclick="toggleRagStatus()">
-                  <svg id="rag-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <rect x="3" y="11" width="18" height="2" rx="1" ry="1"></rect>
-                    <rect id="rag-toggle-knob" x="3" y="9" width="6" height="6" rx="3" ry="3" fill="#bbb"></rect>
-                  </svg>
+                  <img src="/static/images/book.png" alt="RAG" style="width: 16px; height: 16px; object-fit: contain; margin-right: 4px;">
                   <span id="rag-status-text" data-i18n="ragNotActivated">RAG未启动</span>
                 </button>
                 <!-- <button class="btn btn-sm btn-outline-secondary" id="search-button" onclick="toggleWebSearch()">
@@ -1412,44 +1466,24 @@
                   <span data-i18n="webSearch">联网搜索</span>
                 </button> -->
                 <button class="btn btn-sm btn-outline-secondary" id="export-button" onclick="exportReport()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
+                  <img src="/static/images/file-export.png" alt="导出报告" style="width: 16px; height: 16px; object-fit: contain; margin-right: 4px;">
                   <span data-i18n="exportReport">导出报告</span>
                 </button>
                 <button class="btn btn-sm btn-outline-secondary" id="risk-history-button" onclick="showRiskHistory()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                    <path d="M9 11H1l8-8 8 8h-8v8"></path>
-                    <path d="M3 19h18"></path>
-                  </svg>
+                  <img src="/static/images/time-past.png" alt="评估历史" style="width: 16px; height: 16px; object-fit: contain; margin-right: 4px;">
                   <span data-i18n="assessmentHistory">评估历史</span>
                 </button>
               </div>
               <!-- 右侧输入相关按钮组 -->
               <div class="d-flex gap-2 flex-wrap">
                 <button class="btn-icon" type="button" id="voice-input-button" data-i18n-title="voiceInput" title="语音输入">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                    <path d="M12 1v14a4 4 0 0 0 4-4V5a4 4 0 0 0-8 0v6a4 4 0 0 0 4 4z"></path>
-                    <line x1="19" y1="10" x2="19" y2="10"></line>
-                    <line x1="5" y1="10" x2="5" y2="10"></line>
-                    <line x1="12" y1="19" x2="12" y2="23"></line>
-                    <line x1="8" y1="23" x2="16" y2="23"></line>
-                  </svg>
+                  <img src="/static/images/waveform-path.png" alt="语音输入" style="width: 20px; height: 20px; object-fit: contain;">
                 </button>
                 <button class="btn-icon" type="button" onclick="document.getElementById('file-input').click()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                  </svg>
+                  <img src="/static/images/file-upload.png" alt="文件上传" style="width: 20px; height: 20px; object-fit: contain;">
                 </button>
-                <button class="btn-icon" type="button" id="send-button" style="color: #ccc;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
+                <button class="btn-icon" type="button" id="send-button">
+                  <img id="send-button-icon" src="/static/images/paper-plane.png" alt="发送" style="width: 20px; height: 20px; object-fit: contain; opacity: 0.4;">
                 </button>
               </div>
             </div>
@@ -1745,18 +1779,13 @@
         function toggleRagStatus() {
             ragEnabled = !ragEnabled;
             const statusText = document.getElementById('rag-status-text');
-            const knob = document.getElementById('rag-toggle-knob');
             const ragBtn = document.getElementById('rag-toggle-button');
             if (ragEnabled) {
                 statusText.textContent = i18n.t('ragActivated');
-                knob.setAttribute('x', '15');
-                knob.setAttribute('fill', '#1976d2');
                 ragBtn.classList.remove('btn-outline-secondary');
                 ragBtn.classList.add('btn-primary');
             } else {
                 statusText.textContent = i18n.t('ragNotActivated');
-                knob.setAttribute('x', '3');
-                knob.setAttribute('fill', '#bbb');
                 ragBtn.classList.remove('btn-primary');
                 ragBtn.classList.add('btn-outline-secondary');
             }
@@ -1990,6 +2019,11 @@
         // 页面加载时获取聊天历史和用户信息
         document.addEventListener('DOMContentLoaded', function() {
             updateLangButtons();
+            // 从 localStorage 恢复之前选中的对话ID
+            const savedSessionId = localStorage.getItem('currentSessionId');
+            if (savedSessionId) {
+                currentSessionId = parseInt(savedSessionId);
+            }
             // 先检查登录状态
             checkAuthStatus().then(isAuthenticated => {
                 if (isAuthenticated) {
@@ -2000,29 +2034,26 @@
             loadOllamaModels();
             setupModelSelector();
             
-            // 初始化输入框和模型选择框位置
+            // 初始化输入框和顶部横框位置
             const sidebar = document.getElementById('sidebar');
             const chatInputBar = document.querySelector('.chat-input-bar');
-            const modelSelector = document.getElementById('model-selector-container');
+            const chatHeaderBar = document.querySelector('.chat-header-bar');
             if (sidebar && chatInputBar) {
                 if (sidebar.classList.contains('collapsed')) {
                     chatInputBar.style.left = '56px';
-                    if (modelSelector) {
-                        modelSelector.style.marginLeft = '56px';
+                    if (chatHeaderBar) {
+                        chatHeaderBar.style.left = '56px';
                     }
                 } else {
                     chatInputBar.style.left = '240px';
-                    if (modelSelector) {
-                        modelSelector.style.marginLeft = '240px';
+                    if (chatHeaderBar) {
+                        chatHeaderBar.style.left = '240px';
                     }
                 }
             }
             
             // 初始化发送按钮颜色
-            const sendButton = document.getElementById('send-button');
-            const messageInput = document.getElementById('message-input');
-            const hasText = messageInput.value.trim().length > 0 || selectedFiles.size > 0;
-            sendButton.style.color = hasText ? '#000' : '#ccc';
+            updateSendButtonState();
             
             // 添加页面可见性检测，解决切换界面后消息不显示的问题
             let lastVisibilityState = document.visibilityState;
@@ -2149,7 +2180,38 @@
                     chatHistoryMobile.appendChild(historyItemMobile);
                 });
 
-                // 如果没有当前会话，创建新会话
+                // 如果没有当前会话，尝试恢复之前保存的会话
+                if (!currentSessionId) {
+                    // 尝试从 localStorage 恢复
+                    const savedSessionId = localStorage.getItem('currentSessionId');
+                    if (savedSessionId) {
+                        const savedId = parseInt(savedSessionId);
+                        // 检查保存的会话ID是否在会话列表中
+                        const savedSession = sessions.find(s => s.id === savedId);
+                        if (savedSession) {
+                            currentSessionId = savedId;
+                            loadSession(savedId);
+                            return; // 已加载保存的会话，直接返回
+                        } else {
+                            // 保存的会话不存在，清除 localStorage
+                            localStorage.removeItem('currentSessionId');
+                        }
+                    }
+                } else {
+                    // 如果 currentSessionId 已存在，检查它是否在会话列表中
+                    const existingSession = sessions.find(s => s.id === currentSessionId);
+                    if (existingSession) {
+                        // 会话存在，确保它被加载（页面刷新时可能需要重新加载）
+                        loadSession(currentSessionId);
+                        return; // 已加载当前会话，直接返回
+                    } else {
+                        // 当前会话不在列表中，清除它
+                        currentSessionId = null;
+                        localStorage.removeItem('currentSessionId');
+                    }
+                }
+                
+                // 如果没有当前会话，创建新会话或加载第一个
                 if (!currentSessionId && sessions.length === 0) {
                     createNewChat();
                 } else if (!currentSessionId && sessions.length > 0) {
@@ -2174,6 +2236,8 @@
                 });
                 const session = await response.json();
                 currentSessionId = session.id;
+                // 保存到 localStorage
+                localStorage.setItem('currentSessionId', session.id.toString());
                 clearMessages();
                 // 重新加载聊天历史以显示新会话
                 await loadChatHistory();
@@ -2188,6 +2252,8 @@
             
             // 先更新当前会话ID
             currentSessionId = sessionId;
+            // 保存到 localStorage，以便刷新后恢复
+            localStorage.setItem('currentSessionId', sessionId.toString());
             
             // 清空渲染缓存，确保所有消息都能重新渲染
             renderedMessageIds.clear();
@@ -2221,7 +2287,7 @@
                     // 显示欢迎消息
                     chatMessages.innerHTML = `
                         <div class="card rounded-3">
-                            <div class="card-body text-center" data-i18n="welcomeMessage">
+                            <div class="card-body text-center welcome-message" data-i18n="welcomeMessage">
                                 ${i18n.t('welcomeMessage')}
                             </div>
                         </div>
@@ -2311,6 +2377,8 @@
                 
                 if (currentSessionId === sessionId) {
                     currentSessionId = null;
+                    // 清除 localStorage 中保存的会话ID
+                    localStorage.removeItem('currentSessionId');
                 }
                 
                 loadChatHistory();
@@ -2363,11 +2431,110 @@
                 contentDiv.className = 'p-2';
                 contentDiv.style.backgroundColor = 'transparent';
                 contentDiv.style.border = 'none';
-                contentDiv.innerHTML = message.content
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/\n+/g, '<br>');
+                
+                // 检查是否有文件需要显示（从后端加载的消息）
+                const files = message.files || [];
+                if (files.length > 0) {
+                    // 有文件，按类型显示
+                    files.forEach((fileInfo) => {
+                        const fileName = fileInfo.filename || fileInfo.name;
+                        const fileType = (fileInfo.file_type || fileName.split('.').pop() || '').toLowerCase();
+                        const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
+                        const isImage = imageTypes.includes(fileType);
+                        
+                        if (isImage) {
+                            // 图片：显示图片预览
+                            const imgDiv = document.createElement('div');
+                            imgDiv.style.marginBottom = '8px';
+                            imgDiv.style.maxWidth = '320px';
+                            imgDiv.style.marginLeft = 'auto';
+                            imgDiv.style.textAlign = 'right';
+                            
+                            // 如果是新发送的消息，直接使用文件对象
+                            if (fileInfo.file && fileInfo.file instanceof File) {
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    imgDiv.innerHTML = `
+                                        <img src="${e.target.result}" alt="${fileName}" 
+                                             style="width: 100%; max-width: 320px; height: auto; border-radius: 8px; cursor: pointer;"
+                                             onclick="showImageModal('${e.target.result}')">
+                                    `;
+                                };
+                                reader.onerror = function(err) {
+                                    console.error('读取文件失败:', err);
+                                    imgDiv.innerHTML = `<div style="color: #999; padding: 8px;">图片加载失败: ${fileName}</div>`;
+                                };
+                                reader.readAsDataURL(fileInfo.file);
+                            } else if (fileInfo.id) {
+                                // 历史消息：从后端API获取文件内容
+                                fetch(`/api/v1/files/${fileInfo.id}/download`)
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error('文件获取失败');
+                                        }
+                                        return response.blob();
+                                    })
+                                    .then(blob => {
+                                        const reader = new FileReader();
+                                        reader.onload = function(e) {
+                                            imgDiv.innerHTML = `
+                                                <img src="${e.target.result}" alt="${fileName}" 
+                                                     style="width: 100%; max-width: 320px; height: auto; border-radius: 8px; cursor: pointer;"
+                                                     onclick="showImageModal('${e.target.result}')">
+                                            `;
+                                        };
+                                        reader.readAsDataURL(blob);
+                                    })
+                                    .catch(err => {
+                                        console.error('获取图片失败:', err);
+                                        imgDiv.innerHTML = `<div style="color: #999; padding: 8px;">图片加载失败: ${fileName}</div>`;
+                                    });
+                            } else {
+                                imgDiv.innerHTML = `<div style="color: #999; padding: 8px;">图片: ${fileName}</div>`;
+                            }
+                            contentDiv.appendChild(imgDiv);
+                        } else {
+                            // 非图片文件：显示图标+文件名
+                            const fileDiv = document.createElement('div');
+                            fileDiv.style.display = 'flex';
+                            fileDiv.style.alignItems = 'center';
+                            fileDiv.style.marginBottom = '8px';
+                            fileDiv.style.padding = '8px 12px';
+                            fileDiv.style.backgroundColor = '#f5f5f5';
+                            fileDiv.style.borderRadius = '8px';
+                            fileDiv.style.maxWidth = '320px';
+                            fileDiv.style.marginLeft = 'auto';
+                            
+                            let iconPath = '/static/images/file.png';
+                            if (fileType === 'pdf') {
+                                iconPath = '/static/images/pdf.png';
+                            } else if (fileType === 'doc' || fileType === 'docx') {
+                                iconPath = '/static/images/doc.png';
+                            }
+                            
+                            fileDiv.innerHTML = `
+                                <img src="${iconPath}" alt="${fileType}" style="width: 40px; height: 40px; margin-right: 12px; object-fit: contain; flex-shrink: 0;">
+                                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">
+                                    <div style="font-size: 14px; font-weight: 600; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px;" title="${fileName}">${fileName}</div>
+                                    <div style="font-size: 12px; color: #666; text-transform: uppercase; font-weight: 400;">${fileType}</div>
+                                </div>
+                            `;
+                            contentDiv.appendChild(fileDiv);
+                        }
+                    });
+                }
+                
+                // 如果有文本内容，显示文本
+                if (message.content && message.content.trim() && !message.content.startsWith('已上传文件：')) {
+                    const textDiv = document.createElement('div');
+                    textDiv.innerHTML = message.content
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\n+/g, '<br>');
+                    contentDiv.appendChild(textDiv);
+                }
+                
                 messageCard.appendChild(contentDiv);
             } else {
                 messageCard.className = 'card bg-white';
@@ -2758,34 +2925,91 @@
                 Array.from(files).forEach(file => {
                     const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                     selectedFiles.set(fileId, file);
-                    addFilePreview(fileId, file.name);
+                    addFilePreview(fileId, file);
                 });
                 this.value = ''; // 清空input，允许重复选择相同文件
                 
-                // 更新发送按钮颜色
-                const sendButton = document.getElementById('send-button');
-                const messageInput = document.getElementById('message-input');
-                const hasText = messageInput.value.trim().length > 0 || selectedFiles.size > 0;
-                sendButton.style.color = hasText ? '#000' : '#ccc';
+                // 更新发送按钮状态
+                updateSendButtonState();
             }
         });
 
         // 添加文件预览
-        function addFilePreview(fileId, fileName) {
+        function addFilePreview(fileId, file) {
             const filePreview = document.getElementById('file-preview');
-            const fileItem = document.createElement('div');
-            fileItem.className = 'badge bg-light text-dark me-2 mb-2 d-inline-flex align-items-center';
-            fileItem.dataset.fileId = fileId;
-            
+            const fileName = file.name;
             const fileType = fileName.split('.').pop().toLowerCase();
-            const fileIcon = getFileIcon(fileType);
+            const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
+            const isImage = imageTypes.includes(fileType);
             
-            fileItem.innerHTML = `
-                <span class="me-1">${fileIcon}</span>
-                <span class="me-2" title="${fileName}">${fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}</span>
-                <button class="btn-close btn-close-sm" onclick="removeFile('${fileId}')" style="font-size: 0.5rem;"></button>
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-preview-item me-2 mb-2';
+            fileItem.dataset.fileId = fileId;
+            fileItem.style.cssText = `
+                display: inline-flex;
+                align-items: center;
+                background: #fff;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 8px 12px;
+                max-width: 300px;
             `;
+            
+            if (isImage) {
+                // 图片文件：显示图片预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fileItem.innerHTML = `
+                        <img src="${e.target.result}" alt="${fileName}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin-right: 8px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-size: 14px; font-weight: 500; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${fileName}">${fileName}</div>
+                        </div>
+                        <button onclick="removeFile('${fileId}')" style="margin-left: 8px; width: 24px; height: 24px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; background: transparent;" aria-label="Close">
+                            <img src="/static/images/cross-circle.png" alt="Close" style="width: 24px; height: 24px; object-fit: contain;">
+                        </button>
+                    `;
+                    // 图片加载完成后再次更新按钮状态
+                    updateSendButtonState();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // 非图片文件：显示图标 + 文件名
+                let iconPath = '/static/images/file.png';
+                if (fileType === 'pdf') {
+                    iconPath = '/static/images/pdf.png';
+                } else if (fileType === 'doc' || fileType === 'docx') {
+                    iconPath = '/static/images/doc.png';
+                }
+                
+                fileItem.innerHTML = `
+                    <img src="${iconPath}" alt="${fileType}" style="width: 48px; height: 48px; margin-right: 12px; object-fit: contain; flex-shrink: 0;">
+                    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-size: 14px; font-weight: 600; color: #000; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 2px;" title="${fileName}">${fileName}</div>
+                        <div style="font-size: 12px; color: #666; text-transform: uppercase; font-weight: 400;">${fileType}</div>
+                    </div>
+                    <button onclick="removeFile('${fileId}')" style="margin-left: 8px; width: 24px; height: 24px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; background: transparent;" aria-label="Close">
+                        <img src="/static/images/cross-circle.png" alt="Close" style="width: 24px; height: 24px; object-fit: contain;">
+                    </button>
+                `;
+            }
+            
             filePreview.appendChild(fileItem);
+            // 对于非图片文件，立即更新按钮状态（图片文件在reader.onload中已更新）
+            if (!isImage) {
+                updateSendButtonState();
+            }
+        }
+
+        // 统一更新发送按钮状态的函数
+        function updateSendButtonState() {
+            const messageInput = document.getElementById('message-input');
+            const hasText = messageInput && messageInput.value.trim().length > 0;
+            const hasFiles = selectedFiles && selectedFiles.size > 0;
+            const hasContent = hasText || hasFiles;
+            const sendButtonIcon = document.getElementById('send-button-icon');
+            if (sendButtonIcon) {
+                sendButtonIcon.style.opacity = hasContent ? '1' : '0.4';
+            }
         }
 
         function getFileIcon(fileType) {
@@ -2816,11 +3040,8 @@
                 fileItem.remove();
             }
             
-            // 更新发送按钮颜色
-            const sendButton = document.getElementById('send-button');
-            const messageInput = document.getElementById('message-input');
-            const hasText = messageInput.value.trim().length > 0 || selectedFiles.size > 0;
-            sendButton.style.color = hasText ? '#000' : '#ccc';
+            // 更新发送按钮状态
+            updateSendButtonState();
         }
 
         // 发送引导问题的函数
@@ -2837,22 +3058,45 @@
         }
 
         // 修改发送消息函数
+        let isSending = false;  // 添加发送状态标志，防止重复发送
         async function sendMessage() {
+            // 如果正在发送，直接返回
+            if (isSending) {
+                return;
+            }
+            
             // 先清除欢迎语（如果存在）
             const chatMessages = document.getElementById('chat-messages');
-            if (
-                chatMessages.children.length === 1 &&
-                chatMessages.children[0].querySelector('.welcome-message')
-            ) {
-                chatMessages.innerHTML = '';
+            const welcomeMessage = chatMessages.querySelector('.welcome-message');
+            if (welcomeMessage) {
+                // 如果只有欢迎消息，清空整个容器
+                if (chatMessages.children.length === 1) {
+                    chatMessages.innerHTML = '';
+                } else {
+                    // 如果有其他内容，只移除欢迎消息
+                    const welcomeCard = welcomeMessage.closest('.card');
+                    if (welcomeCard) {
+                        welcomeCard.remove();
+                    } else {
+                        welcomeMessage.remove();
+                    }
+                }
             }
             // 确保声明在最前面
             const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
             if ((!message && selectedFiles.size === 0) || !currentSessionId) return;
             
-            // 使用流式发送
-            await sendMessageStream();
+            // 设置发送状态
+            isSending = true;
+            
+            try {
+                // 使用流式发送
+                await sendMessageStream();
+            } finally {
+                // 无论成功或失败，都要重置发送状态
+                isSending = false;
+            }
         }
 
         // 流式发送消息函数
@@ -2886,7 +3130,28 @@
                     appendMessage({ role: 'user', content: message });
                 }
                 if (selectedFiles.size > 0) {
-                    appendMessage({ role: 'user', content: `已上传文件：${fileNames}` });
+                    // 为每个文件创建消息，包含文件信息
+                    const filesArray = Array.from(selectedFiles.values());
+                    filesArray.forEach((file) => {
+                        const fileType = file.name.split('.').pop().toLowerCase();
+                        const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
+                        const isImage = imageTypes.includes(fileType);
+                        
+                        // 创建文件对象用于消息显示
+                        const fileInfo = {
+                            name: file.name,
+                            type: fileType,
+                            isImage: isImage,
+                            file: file  // 保存文件对象用于预览
+                        };
+                        
+                        appendMessage({ 
+                            role: 'user', 
+                            content: isImage ? '' : `已上传文件：${file.name}`,
+                            message_type: 1,
+                            files: [fileInfo]
+                        });
+                    });
                 }
 
                 // 清空输入框和文件
@@ -2894,6 +3159,8 @@
                 messageInput.style.height = 'auto';
                 selectedFiles.clear();
                 document.getElementById('file-preview').innerHTML = '';
+                // 更新发送按钮状态（清空后应该禁用）
+                updateSendButtonState();
 
                 // 创建AI消息容器
                 const aiMessageContainer = document.createElement('div');
@@ -3489,6 +3756,10 @@
                     catchLoadingContainer.remove();
                 }
                 appendMessage({ role: 'assistant', content: i18n.t('genericError') });
+            } finally {
+                // 确保发送状态被重置，并更新发送按钮状态
+                isSending = false;
+                updateSendButtonState();
             }
         }
 
@@ -3501,11 +3772,9 @@
             }
         });
 
-        // 监听输入框变化，动态改变发送按钮颜色
+        // 监听输入框变化，动态改变发送按钮状态
         document.getElementById('message-input').addEventListener('input', function() {
-            const sendButton = document.getElementById('send-button');
-            const hasText = this.value.trim().length > 0 || selectedFiles.size > 0;
-            sendButton.style.color = hasText ? '#000' : '#ccc';
+            updateSendButtonState();
         });
 
         // 修改toggleWebSearch函数
@@ -3642,6 +3911,13 @@
                                 <p class="mb-1"><strong data-i18n="predictionProbability">${predictionProbability}</strong>: ${(existingAssessment.probability * 100).toFixed(2)}%</p>
                             ` : ''}
                             <p class="mb-0"><strong data-i18n="assessmentTime">${assessmentTime}</strong>: ${formattedTime}</p>
+                            ${existingAssessment.shap_plot && existingAssessment.shap_plot.trim() ? `
+                                <div class="mt-3">
+                                    <h6 class="mb-2" data-i18n="featureImportanceAnalysis">${i18n.t('featureImportanceAnalysis')}</h6>
+                                    <img src="${existingAssessment.shap_plot.startsWith('data:image') ? existingAssessment.shap_plot : 'data:image/png;base64,' + existingAssessment.shap_plot}" 
+                                         alt="${i18n.t('featureImportanceAnalysis')}" class="img-fluid">
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 }
@@ -3870,24 +4146,53 @@
                     ${i18n.t('exporting')}
                 `;
 
-                // 添加语言参数
+                // 添加语言和模型参数
                 const currentLang = i18n.currentLang || 'zh';
-                const response = await fetch(`/api/v1/chat/sessions/${currentSessionId}/export?language=${currentLang}`, {
+                const currentModel = selectedModel || 'qwen3:32b';
+                const response = await fetch(`/api/v1/chat/sessions/${currentSessionId}/export?language=${currentLang}&model=${encodeURIComponent(currentModel)}`, {
                     method: 'GET'
                 });
 
+                // 检查响应状态
                 if (!response.ok) {
-                    throw new Error(i18n.t('exportFailed'));
+                    let errorMessage = i18n.t('exportFailed');
+                    try {
+                        const errorText = await response.text();
+                        if (errorText) {
+                            try {
+                                const errorData = JSON.parse(errorText);
+                                if (errorData.message) {
+                                    errorMessage += ': ' + errorData.message;
+                                }
+                            } catch (e) {
+                                // 不是JSON，直接使用错误文本
+                                if (errorText.length < 200) {
+                                    errorMessage += ': ' + errorText;
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        errorMessage += ' (HTTP ' + response.status + ')';
+                    }
+                    throw new Error(errorMessage);
                 }
 
-                // 检查响应类型
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/pdf')) {
-                    // 如果是PDF文档，直接下载
+                // 获取Content-Type（优先使用Content-Type判断）
+                const contentType = response.headers.get('content-type') || '';
+                
+                // 如果Content-Type明确是PDF，直接处理为PDF
+                if (contentType.includes('application/pdf')) {
                     const blob = await response.blob();
+                    // 验证blob大小
+                    if (blob.size === 0) {
+                        throw new Error('下载的文件为空，请重试');
+                    }
+                    
+                    // PDF文件，直接下载（仅下载一次）
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
+                    a.style.display = 'none';
                     
                     // 获取文件名
                     const contentDisposition = response.headers.get('Content-Disposition');
@@ -3902,13 +4207,29 @@
                     a.download = filename;
                     document.body.appendChild(a);
                     a.click();
-                    window.URL.revokeObjectURL(url);
-                } else {
-                    // 如果是Markdown格式，显示在页面上
-                    const data = await response.json();
-                    if (data.format === 'markdown') {
+                    
+                    // 延迟清理，确保下载完成
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        if (document.body.contains(a)) {
+                            document.body.removeChild(a);
+                        }
+                    }, 200);
+                    
+                    // PDF下载成功，直接返回（确保只下载一次）
+                    return;
+                }
+                
+                // 不是PDF，尝试解析为JSON（Markdown格式）
+                // 只读取一次响应体
+                const blob = await response.blob();
+                
+                try {
+                    const text = await blob.text();
+                    const data = JSON.parse(text);
+                    
+                    if (data.format === 'markdown' && data.report) {
                         // 创建模态框显示报告
-                        const modal = new bootstrap.Modal(document.createElement('div'));
                         const modalElement = document.createElement('div');
                         modalElement.className = 'modal fade';
                         modalElement.innerHTML = `
@@ -3933,33 +4254,75 @@
                         const reportContent = modalElement.querySelector('#report-content');
                         // 预处理文本
                         const processedReport = preprocessText(data.report);
-                        reportContent.innerHTML = marked.parse(processedReport); // 使用marked.js转换Markdown
+                        reportContent.innerHTML = marked.parse(processedReport);
                         
                         const modalInstance = new bootstrap.Modal(modalElement);
                         modalInstance.show();
                         
                         // 清理模态框
                         modalElement.addEventListener('hidden.bs.modal', () => {
-                            document.body.removeChild(modalElement);
+                            if (document.body.contains(modalElement)) {
+                                document.body.removeChild(modalElement);
+                            }
                         });
                         
-                        // 下载Markdown函数
+                        // 下载Markdown函数（仅下载一次）
                         window.downloadMarkdown = function() {
-                            const blob = new Blob([data.report], { type: 'text/markdown' });
-                            const url = window.URL.createObjectURL(blob);
+                            const markdownBlob = new Blob([data.report], { type: 'text/markdown' });
+                            const url = window.URL.createObjectURL(markdownBlob);
                             const a = document.createElement('a');
                             a.href = url;
+                            a.style.display = 'none';
                             a.download = 'health_report.md';
                             document.body.appendChild(a);
                             a.click();
-                            window.URL.revokeObjectURL(url);
-                            document.body.removeChild(a);
+                            
+                            setTimeout(() => {
+                                window.URL.revokeObjectURL(url);
+                                if (document.body.contains(a)) {
+                                    document.body.removeChild(a);
+                                }
+                            }, 200);
                         };
+                    } else {
+                        throw new Error('服务器返回了无效的响应格式');
+                    }
+                } catch (parseError) {
+                    // JSON解析失败，可能是PDF但Content-Type未正确设置
+                    // 检查blob类型和大小来判断是否为PDF
+                    const isLikelyPDF = (blob.type && blob.type.includes('pdf')) || 
+                                       (blob.size > 1000 && !blob.type.includes('text') && !blob.type.includes('json'));
+                    
+                    if (isLikelyPDF) {
+                        // 很可能是PDF，尝试下载
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.style.display = 'none';
+                        a.download = 'health_report.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            if (document.body.contains(a)) {
+                                document.body.removeChild(a);
+                            }
+                        }, 200);
+                        // 下载后直接返回，确保只下载一次
+                        return;
+                    } else {
+                        // 不是PDF，抛出错误
+                        throw new Error('服务器返回了无效的响应格式: ' + parseError.message);
                     }
                 }
             } catch (error) {
                 console.error('Export error:', error);
-                alert(i18n.t('exportFailed'));
+                let errorMessage = i18n.t('exportFailed');
+                if (error.message) {
+                    errorMessage += ': ' + error.message;
+                }
+                alert(errorMessage);
             } finally {
                 // 恢复按钮状态
                 exportButton.disabled = false;
@@ -4066,13 +4429,7 @@
                 voiceBtn.classList.remove('btn-primary');
                 // 恢复原始图标
                 voiceBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                        <path d="M12 1v14a4 4 0 0 0 4-4V5a4 4 0 0 0-8 0v6a4 4 0 0 0 4 4z"></path>
-                        <line x1="19" y1="10" x2="19" y2="10"></line>
-                        <line x1="5" y1="10" x2="5" y2="10"></line>
-                        <line x1="12" y1="19" x2="12" y2="23"></line>
-                        <line x1="8" y1="23" x2="16" y2="23"></line>
-                    </svg>
+                    <img src="/static/images/waveform-path.png" alt="语音输入" style="width: 20px; height: 20px; object-fit: contain;">
                 `;
                 voiceBtn.title = i18n.t('voiceInput');
             };
@@ -4081,13 +4438,7 @@
                 voiceBtn.classList.remove('btn-primary');
                 // 恢复原始图标
                 voiceBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                        <path d="M12 1v14a4 4 0 0 0 4-4V5a4 4 0 0 0-8 0v6a4 4 0 0 0 4 4z"></path>
-                        <line x1="19" y1="10" x2="19" y2="10"></line>
-                        <line x1="5" y1="10" x2="5" y2="10"></line>
-                        <line x1="12" y1="19" x2="12" y2="23"></line>
-                        <line x1="8" y1="23" x2="16" y2="23"></line>
-                    </svg>
+                    <img src="/static/images/waveform-path.png" alt="语音输入" style="width: 20px; height: 20px; object-fit: contain;">
                 `;
                 voiceBtn.title = i18n.t('voiceInput');
                 // 只有当错误不是"no-speech"时才显示弹窗
@@ -4119,47 +4470,127 @@
             };
         }
 
-        // 拖拽上传功能
+        // 拖拽上传功能 - 绑定到 container-fluid vh-100 区域
         let dragCounter = 0;
-        const mainContainer = document.getElementById('main-container');
+        const containerFluid = document.querySelector('.container-fluid.vh-100');
         const fileInput = document.getElementById('file-input');
         
+        // 创建拖拽覆盖层
+        let dragOverlay = document.getElementById('drag-overlay');
+        if (!dragOverlay) {
+            dragOverlay = document.createElement('div');
+            dragOverlay.id = 'drag-overlay';
+            dragOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 99999;
+                background-color: rgba(255, 255, 255, 0.7);
+                pointer-events: none;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+            `;
+            
+            // 创建内容容器
+            const contentContainer = document.createElement('div');
+            contentContainer.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                transform: translateY(-60px);
+            `;
+            
+            // 添加图片
+            const dragImage = document.createElement('img');
+            dragImage.src = '/static/images/upload.png';
+            dragImage.alt = '上传';
+            dragImage.style.cssText = `
+                width: 200px;
+                height: 200px;
+                margin-bottom: 24px;
+                object-fit: contain;
+            `;
+            contentContainer.appendChild(dragImage);
+            
+            // 添加大标题
+            const dragTitle = document.createElement('div');
+            dragTitle.id = 'drag-title';
+            dragTitle.textContent = i18n.t('addAnyContent');
+            dragTitle.style.cssText = `
+                font-size: 32px;
+                font-weight: bold;
+                color: #000;
+                margin-bottom: 12px;
+            `;
+            contentContainer.appendChild(dragTitle);
+            
+            // 添加提示文字
+            const dragText = document.createElement('div');
+            dragText.id = 'drag-hint';
+            dragText.textContent = i18n.t('dragDropFileHint');
+            dragText.style.cssText = `
+                font-size: 16px;
+                color: #666;
+            `;
+            contentContainer.appendChild(dragText);
+            
+            dragOverlay.appendChild(contentContainer);
+            document.body.appendChild(dragOverlay);
+        }
+        
+        // 显示覆盖层
+        function showDragOverlay() {
+            dragOverlay.style.display = 'flex';
+        }
+        
+        // 隐藏覆盖层
+        function hideDragOverlay() {
+            dragOverlay.style.display = 'none';
+        }
+        
         // 监听拖拽进入
-        mainContainer.addEventListener('dragenter', e => {
+        containerFluid.addEventListener('dragenter', e => {
             e.preventDefault(); e.stopPropagation();
             dragCounter++;
-            mainContainer.style.border = '2px dashed #0d6efd';
-            mainContainer.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+            showDragOverlay();
         });
         // 监听拖拽悬浮
-        mainContainer.addEventListener('dragover', e => {
+        containerFluid.addEventListener('dragover', e => {
             e.preventDefault(); e.stopPropagation();
-            mainContainer.style.border = '2px dashed #0d6efd';
-            mainContainer.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+            showDragOverlay();
         });
         // 监听拖拽离开
-        mainContainer.addEventListener('dragleave', e => {
+        containerFluid.addEventListener('dragleave', e => {
             e.preventDefault(); e.stopPropagation();
             dragCounter--;
             if (dragCounter <= 0) {
-                mainContainer.style.border = '';
-                mainContainer.style.backgroundColor = '';
+                hideDragOverlay();
                 dragCounter = 0;
             }
         });
         // 拖拽释放
-        mainContainer.addEventListener('drop', e => {
+        containerFluid.addEventListener('drop', e => {
             e.preventDefault(); e.stopPropagation();
-            mainContainer.style.border = '';
-            mainContainer.style.backgroundColor = '';
+            hideDragOverlay();
             dragCounter = 0;
             const files = e.dataTransfer.files;
             if (files.length > 0) {
                 Array.from(files).forEach(file => {
                     const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                     selectedFiles.set(fileId, file);
-                    addFilePreview(fileId, file.name);
+                    addFilePreview(fileId, file);
                 });
+                // 更新发送按钮颜色
+                const sendButton = document.getElementById('send-button');
+                const messageInput = document.getElementById('message-input');
+                const hasText = messageInput.value.trim().length > 0 || selectedFiles.size > 0;
+                sendButton.style.color = hasText ? '#000' : '#696969';
             }
         });
 
@@ -4167,21 +4598,21 @@
         function toggleSidebar() {
           const sidebar = document.getElementById('sidebar');
           const chatInputBar = document.querySelector('.chat-input-bar');
-          const modelSelector = document.getElementById('model-selector-container');
           sidebar.classList.add('collapsed');
           chatInputBar.style.left = '56px';
-          if (modelSelector) {
-            modelSelector.style.marginLeft = '56px';
+          const chatHeaderBar = document.querySelector('.chat-header-bar');
+          if (chatHeaderBar) {
+            chatHeaderBar.style.left = '56px';
           }
         }
         function openSidebar() {
           const sidebar = document.getElementById('sidebar');
           const chatInputBar = document.querySelector('.chat-input-bar');
-          const modelSelector = document.getElementById('model-selector-container');
+          const chatHeaderBar = document.querySelector('.chat-header-bar');
           sidebar.classList.remove('collapsed');
           chatInputBar.style.left = '240px';
-          if (modelSelector) {
-            modelSelector.style.marginLeft = '240px';
+          if (chatHeaderBar) {
+            chatHeaderBar.style.left = '240px';
           }
         }
         // 用户菜单显示/隐藏（桌面端）
@@ -4803,7 +5234,7 @@
                                 </div>
                             ` : ''}
                             
-                            ${assessment.shap_plot ? `
+                            ${assessment.shap_plot && assessment.shap_plot.trim() ? `
                                 <div class="info-section mt-4">
                                     <div class="section-header">
                                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
@@ -4813,8 +5244,8 @@
                                         <h6 class="mb-0" data-i18n="featureImportanceAnalysis">特征重要性分析</h6>
                                     </div>
                                     <div class="shap-plot-container">
-                                        <img src="data:image/png;base64,${assessment.shap_plot.replace(/^data:image\/\w+;base64,/, '')}" 
-                                             alt="${i18n.t('featureImportanceAnalysis')}" class="shap-plot-image">
+                                        <img src="${assessment.shap_plot.startsWith('data:image') ? assessment.shap_plot : 'data:image/png;base64,' + assessment.shap_plot}" 
+                                             alt="${i18n.t('featureImportanceAnalysis')}" class="shap-plot-image img-fluid">
                                     </div>
                                 </div>
                             ` : ''}

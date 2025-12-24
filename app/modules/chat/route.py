@@ -322,6 +322,8 @@ def send_message(session_id):
             uploaded_files = []
             image_messages = []
             has_risk_assessment_image = False  # 标记是否进行了风险评估图片预测
+            risk_assessment_results = []  # 存储风险评估结果（用于后续生成护士建议）
+            nurse_response_generated = False  # 标记是否已经生成了护士建议（用于避免重复回复）
             if files:
                 show_message = current_message
                 is_image_class = False
@@ -382,11 +384,23 @@ def send_message(session_id):
                                     try:
                                         risk_model_service_url = current_app.config.get('RISK_MODEL_SERVICE_URL', 'http://localhost:5002')
                                         file_result = predict_image_via_api(file_path, img_type, risk_model_service_url)
+                                        print(f"[风险评估图片预测] 图片类型: {img_type}, 预测结果: {file_result}")
+                                        
+                                        # 保存风险评估结果，用于后续生成护士建议
+                                        risk_assessment_results.append({
+                                            'img_type': img_type,
+                                            'file_result': file_result,
+                                            'filename': filename
+                                        })
+                                        
                                         # 文件内容不包含护士提示词（用于消息历史和判断逻辑）
                                         file_content = file_result.get("info", "")
                                         # 用于传递给AI的内容包含护士提示词
                                         nurse_prompt_image = get_prompt('NURSE_PROMPT_IMAGE', language)
                                         file_content_for_ai = file_content + nurse_prompt_image
+                                        
+                                        print(f"[风险评估图片预测] file_content长度: {len(file_content)}, file_content_for_ai长度: {len(file_content_for_ai)}")
+                                        
                                         if img_type == "breast_cancer" and "image_base64" in file_result:
                                             is_image_class = True
                                             image_base64 = file_result["image_base64"]
@@ -414,8 +428,11 @@ def send_message(session_id):
                 # 实时推送图片消息到SSE流
                 
                 if uploaded_files:
-                    # 先保存原始用户消息（不包含文件信息）
-                    user_message = chat_controller.add_message(session_id, show_message if show_message else "上传了文件", is_user=True, message_type=1, is_visible=True)
+                    # 先保存用户消息（包含文件内容和风险评估结果）
+                    # 使用更新后的current_message，而不是初始的show_message
+                    user_message_content = current_message if current_message else (show_message if show_message else "上传了文件")
+                    print(f"[保存用户消息] 消息内容长度: {len(user_message_content)}, 内容预览: {user_message_content[:200]}")
+                    user_message = chat_controller.add_message(session_id, user_message_content, is_user=True, message_type=1, is_visible=True)
                     
                     # 将文件关联到用户消息
                     if saved_files:
@@ -444,11 +461,70 @@ def send_message(session_id):
                             # 前端会通过API获取完整的图片数据
                             yield f"data: {json.dumps({'type': 'image_message', 'message_id': img_msg.id, 'content': img_msg.content, 'has_image': True})}\n\n"
                     
+                    # 对于非breast_cancer类型的风险评估图片，生成护士建议消息
+                    if has_risk_assessment_image and risk_assessment_results:
+                        print(f"[风险评估图片预测] 开始处理 {len(risk_assessment_results)} 个风险评估结果")
+                        # 先发送AI处理开始信号，让前端创建消息容器
+                        yield f"data: {json.dumps({'type': 'ai_processing_start'})}\n\n"
+                        
+                        for risk_result in risk_assessment_results:
+                            if risk_result['img_type'] != "breast_cancer":
+                                # 生成护士建议
+                                try:
+                                    file_result = risk_result['file_result']
+                                    img_type = risk_result['img_type']
+                                    filename = risk_result['filename']
+                                    
+                                    # 获取预测结果信息
+                                    prediction_info = file_result.get("info", "")
+                                    prediction_label = file_result.get("label", "")
+                                    
+                                    print(f"[风险评估图片预测] 处理图片: {filename}, 类型: {img_type}, 预测结果: {prediction_label}, info长度: {len(prediction_info)}")
+                                    
+                                    if prediction_info or prediction_label:
+                                        # 调用get_nurse_response生成护士建议
+                                        nurse_response = get_nurse_response(
+                                            img_type, 
+                                            prediction_label if prediction_label else prediction_info,
+                                            str(file_result),
+                                            ollama_client,
+                                            language,
+                                            model=model
+                                        )
+                                        
+                                        if nurse_response:
+                                            # 保存护士建议作为消息
+                                            import time
+                                            time.sleep(0.01)  # 短暂延迟，确保时间戳不同
+                                            nurse_message = chat_controller.add_message(
+                                                session_id,
+                                                nurse_response,
+                                                is_user=False,
+                                                message_type=0,
+                                                is_visible=True
+                                            )
+                                            # 发送护士建议消息（使用content类型，让前端正常显示）
+                                            # 先发送完整内容
+                                            yield f"data: {json.dumps({'type': 'content', 'content': nurse_response, 'done': True})}\n\n"
+                                            # 然后发送消息完成信号
+                                            yield f"data: {json.dumps({'type': 'message_complete', 'message_id': nurse_message.id, 'full_response': nurse_response, 'rag_response': None, 'references': None})}\n\n"
+                                            print(f"[风险评估图片预测] 已生成并保存护士建议消息，ID: {nurse_message.id}, 内容长度: {len(nurse_response)}")
+                                            nurse_response_generated = True  # 标记已生成护士建议
+                                        else:
+                                            print(f"[风险评估图片预测] 护士建议为空，跳过保存")
+                                    else:
+                                        print(f"[风险评估图片预测] 预测结果为空，跳过生成护士建议")
+                                except Exception as e:
+                                    print(f"[风险评估图片预测] 生成护士建议失败: {str(e)}")
+                                    import traceback
+                                    traceback.print_exc()
+                    
             elif current_message != "":
                 user_message = chat_controller.add_message(session_id, current_message, is_user=True, message_type=0, is_visible=True)
             
-            # 发送AI处理开始信号
-            yield f"data: {json.dumps({'type': 'ai_processing_start'})}\n\n"
+            # 发送AI处理开始信号（如果还没有发送）
+            if not nurse_response_generated:
+                yield f"data: {json.dumps({'type': 'ai_processing_start'})}\n\n"
             
             # 调用AI服务获取流式回复
             try:
@@ -565,11 +641,27 @@ def send_message(session_id):
                     yield f"data: {json.dumps({'type': 'report_workflow_complete'})}\n\n"
                     yield f"data: {json.dumps({'type': 'complete'})}\n\n"
                     return
+                
+                # 如果已经生成了护士建议（风险评估图片预测），则跳过后续的AI对话
+                if nurse_response_generated:
+                    print(f"[风险评估图片预测] 已生成护士建议，跳过后续AI对话")
+                    # 发送完成信号
+                    yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                    return
+                
                 # 使用流式对话函数
                 try:
                     # 发送RAG处理开始信号
                     if rag_enabled:
                         yield f"data: {json.dumps({'type': 'rag_processing_start'})}\n\n"
+                    
+                    # 打印调用信息
+                    print(f"[chat_with_llm] 开始调用AI对话服务")
+                    print(f"[chat_with_llm] 模型: {model}")
+                    print(f"[chat_with_llm] RAG启用: {rag_enabled}")
+                    print(f"[chat_with_llm] 深度思考启用: {deep_think}")
+                    print(f"[chat_with_llm] 消息数量: {len(formatted_messages)}")
+                    print(f"[chat_with_llm] 流式输出: True")
                     
                     # 调用流式AI对话
                     stream_response,references = chat_with_llm(
@@ -1305,112 +1397,185 @@ from datetime import datetime
 
 def render_health_report_html(
     report_md: str,
-    title: str = "检小知 · 体检报告解读",
+    title: str = "济世 · 报告解读",
     user_name: str = "用户上传",
     version: str = "v1.0",
+    language: str = "zh",
 ) -> str:
     html_content = markdown.markdown(
         report_md,
         extensions=['tables', 'fenced_code']
     ).replace('<!--pagebreak-->', '<div class="page-break"></div>')
+    
+    # 获取logo图片并转换为base64编码
+    # route.py 位于: client/app/modules/chat/route.py
+    # logo.png 位于: client/app/static/images/logo.png
+    # 需要向上4级到client目录
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    logo_path = os.path.join(base_dir, 'app', 'static', 'images', 'logo.png')
+    logo_absolute_path = os.path.abspath(logo_path)
+    
+    # 读取logo图片并转换为base64
+    logo_base64 = ""
+    if os.path.exists(logo_absolute_path):
+        try:
+            with open(logo_absolute_path, 'rb') as f:
+                logo_data = f.read()
+                logo_base64 = base64.b64encode(logo_data).decode('utf-8')
+                logo_base64 = f"data:image/png;base64,{logo_base64}"
+                print(f"Logo loaded successfully, base64 length: {len(logo_base64)}")
+        except Exception as e:
+            print(f"Error loading logo: {str(e)}")
+            logo_base64 = ""
+    else:
+        print(f"Logo file not found at: {logo_absolute_path}")
 
-    style_css = """
-:root { --primary:#1976d2; --ok:#2e7d32; --warn:#ef6c00; --danger:#d32f2f;
-        --border:#e5e7eb; --muted:#6b7280; --bg:#ffffff; }
-* { box-sizing:border-box; }
-html,body { height:100%; }
-body { font-family:"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,Helvetica,sans-serif;
-       margin:0; background:#f6f7f9; color:#111827; line-height:1.65; }
-.page { width:210mm; min-height:297mm; margin:0 auto; background:var(--bg);
-        padding:8mm 8mm; box-shadow:0 6px 30px rgba(0,0,0,.08); }
+    # 根据语言设置字体和冒号
+    if language.lower() == 'en':
+        font_family = 'Arial,Helvetica,"Segoe UI",Roboto,sans-serif'
+        colon_char = ":"
+    else:
+        font_family = '"Noto Sans SC","PingFang SC","Microsoft YaHei",Arial,Helvetica,sans-serif'
+        colon_char = "："
+    
+    style_css = f"""
+:root {{ --primary:#1976d2; --ok:#2e7d32; --warn:#ef6c00; --danger:#d32f2f;
+        --border:#e5e7eb; --muted:#6b7280; --bg:#ffffff; }}
+* {{ box-sizing:border-box; }}
+html,body {{ height:100%; }}
+body {{ font-family:{font_family};
+       margin:0; background:#f6f7f9; color:#111827; line-height:1.65; }}
+.page {{ width:210mm; min-height:297mm; margin:0 auto; background:var(--bg);
+        padding:4mm 4mm 8mm 4mm; box-shadow:0 6px 30px rgba(0,0,0,.08); }}
 
 /* ===== 顶部三行布局 ===== */
-header.report-header{
+header.report-header{{
   display:flex;
   flex-direction:column;
   align-items:stretch;
-  row-gap:8px;
-  margin-bottom:6mm;
+  row-gap:6px;
+  margin-bottom:4mm;
   border-bottom:1px solid var(--border);
-  padding-bottom:4mm;
-}
+  padding-bottom:3mm;
+}}
 
 /* 行1：左上 logo（含文字） */
-.brand{
-  align-self:flex-start;                      /* 左对齐 */
+.brand{{
+  align-self:flex-start;
   display:inline-flex; align-items:center; gap:10px;
   font-weight:700; font-size:20px; color:var(--primary);
   white-space:nowrap; word-break:keep-all; line-height:1;
-}
-.brand .logo{ width:28px; height:28px; border-radius:8px; background:var(--primary); display:inline-block; }
+}}
+.brand .logo{{ width:40px; height:40px; display:inline-block; object-fit:contain; }}
 
 /* 行2：标题加粗居中 */
-.report-title{
+.report-title{{
   align-self:center; text-align:center; width:100%;
   margin:0; font-size:22px; font-weight:700; color:#0f172a;
   white-space:nowrap;
-}
+}}
 
 /* 行3：信息条（单个框体，内容居中） */
-.meta-box{
-  align-self:center;                          /* 整块居中 */
+.meta-box{{
+  align-self:center;
   background:#fff; border:1px solid var(--border); border-radius:14px;
-  padding:10px 14px; max-width:100%;
-}
-.meta-items{
+  padding:12px 20px; width:fit-content; min-width:80%;
+  margin:0 auto;
+}}
+.meta-items{{
   display:flex; align-items:center; justify-content:center;
-  gap:14px; flex-wrap:wrap;                   /* 窄屏时同框体内换行 */
-}
-.meta-item{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
-.meta-item + .meta-item{                      /* 分隔符 */
+  gap:14px; flex-wrap:nowrap;
+}}
+.meta-item{{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; flex-shrink:0; }}
+.meta-item + .meta-item{{
   position:relative; padding-left:14px; margin-left:0;
-}
-.meta-item + .meta-item::before{
+}}
+.meta-item + .meta-item::before{{
   content:"|"; position:absolute; left:0; top:50%; transform:translateY(-50%);
   color:#cbd5e1;
-}
-.meta-item .k{ color:var(--muted); }
-.meta-item .k::after{ content:"："; margin:0 2px; color:var(--muted); }
-.meta-item .v{ font-weight:600; color:#0f172a; }
+}}
+.meta-item .k{{ color:var(--muted); }}
+.meta-item .k::after{{ content:"{colon_char}"; margin:0 2px; color:var(--muted); }}
+.meta-item .v{{ font-weight:600; color:#0f172a; }}
 
 /* 正文与表格等 */
-h1,h2,h3 { margin:12px 0 8px; line-height:1.3; }
-h1 { text-align:center; color:var(--primary); font-size:26px; margin-top:1mm; }
-h2 { font-size:18px; border-left:4px solid var(--primary); padding-left:8px; }
-h3 { font-size:15px; color:#0f172a; }
-p { margin:6px 0; }
-table { width:100%; border-collapse:separate; border-spacing:0; margin:8px 0 12px; }
-thead th { background:#f8fafc; position:sticky; top:0; z-index:1; }
-th,td { border:1px solid var(--border); padding:8px; text-align:left; font-size:13px; }
-tbody tr:nth-child(odd) td { background:#fcfcfd; }
-tbody tr:hover td { background:#f5f9ff; }
-.callout{ border-left:4px solid var(--warn); background:#fff7ed; padding:10px 12px; border-radius:8px; margin:10px 0; }
-.tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); }
-.tag.ok{ background:#eef7ee; border-color:#d7ebd7; color:var(--ok); }
-.tag.high{ background:#fff0f0; border-color:#f4d6d6; color:var(--danger); }
-.tag.low{ background:#fff8e1; border-color:#ffecb3; color:#a65d00; }
-hr{ border:none; border-top:1px solid var(--border); margin:14px 0; }
-.disclaimer{ font-size:12px; color:#6b7280; margin-top:4mm; }
-footer.report-footer{
+h1,h2,h3 {{ margin:12px 0 8px; line-height:1.3; }}
+h1 {{ text-align:center; color:var(--primary); font-size:26px; margin-top:1mm; }}
+h2 {{ font-size:18px; border-left:4px solid var(--primary); padding-left:8px; }}
+h3 {{ font-size:15px; color:#0f172a; }}
+p {{ margin:6px 0; max-width:100%; }}
+table {{ width:100%; border-collapse:separate; border-spacing:0; margin:8px 0 12px; max-width:100%; }}
+thead th {{ background:#f8fafc; position:sticky; top:0; z-index:1; }}
+th,td {{ border:1px solid var(--border); padding:8px; text-align:left; font-size:13px; }}
+tbody tr:nth-child(odd) td {{ background:#fcfcfd; }}
+tbody tr:hover td {{ background:#f5f9ff; }}
+.callout{{ border-left:4px solid var(--warn); background:#fff7ed; padding:10px 12px; border-radius:8px; margin:10px 0; }}
+.tag{{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--border); }}
+.tag.ok{{ background:#eef7ee; border-color:#d7ebd7; color:var(--ok); }}
+.tag.high{{ background:#fff0f0; border-color:#f4d6d6; color:var(--danger); }}
+.tag.low{{ background:#fff8e1; border-color:#ffecb3; color:#a65d00; }}
+hr{{ border:none; border-top:1px solid var(--border); margin:14px 0; }}
+.disclaimer{{ font-size:12px; color:#6b7280; margin-top:4mm; }}
+footer.report-footer{{
   margin-top:6mm; padding-top:4mm; border-top:1px solid var(--border); color:#6b7280; font-size:12px;
   display:flex; align-items:center; justify-content:space-between;
-}
-.page-break{ break-before:page; page-break-before:always; height:0; }
-@media print{
-  body{ background:#fff; }
-  .page{ width:auto; min-height:auto; box-shadow:none; padding:8mm; }
-  a[href]::after{ content:""; }
-  thead{ display:table-header-group; }
-  tr,img{ break-inside:avoid; page-break-inside:avoid; }
-  .no-print{ display:none !important; }
-}
+}}
+.page-break{{ break-before:page; page-break-before:always; height:0; }}
+@media print{{
+  body{{ background:#fff; }}
+  .page{{ width:auto; min-height:auto; box-shadow:none; padding:8mm 4mm; }}
+  a[href]::after{{ content:""; }}
+  thead{{ display:table-header-group; }}
+  tr,img{{ break-inside:avoid; page-break-inside:avoid; }}
+  .no-print{{ display:none !important; }}
+}}
 """
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     year = datetime.now().year
+    
+    # 根据语言设置文本内容
+    if language.lower() == 'en':
+        # 英文版本
+        lang_code = "en-US"
+        brand_name = "JiShi"
+        default_title = "JiShi · Report"
+        if title == "济世 · 报告解读":
+            title = default_title
+        meta_labels = {
+            "generated_time": "Generated Time",
+            "version": "Version",
+            "source": "Source"
+        }
+        default_user_name = "User Upload"
+        if user_name == "用户上传":
+            user_name = default_user_name
+        disclaimer_text = f'This report is automatically generated by the intelligent agent <strong>JiShi</strong> based on the information you provided, for health reference only and not as a basis for clinical diagnosis. If there are any abnormalities, it is recommended to go to a formal medical institution for further examination and consultation.'
+        footer_left = f"© {year} JiShi · AI Health Management Assistant"
+        footer_right = 'It is recommended to export as PDF (A4 portrait) by clicking "Print → Save as PDF" in the upper right corner.'
+        print_button = "Export as PDF"
+    else:
+        # 中文版本
+        lang_code = "zh-CN"
+        brand_name = "济世"
+        default_title = "济世 · 报告解读"
+        if title == "济世 · 报告解读":
+            title = default_title
+        meta_labels = {
+            "generated_time": "生成时间",
+            "version": "版本",
+            "source": "来源"
+        }
+        default_user_name = "用户上传"
+        if user_name == "用户上传":
+            user_name = default_user_name
+        disclaimer_text = f'本报告由智能体<strong>济世</strong>基于您提供的信息自动生成，仅供健康参考，不作为临床诊断依据。如有异常建议至正规医疗机构进一步检查与就诊。'
+        footer_left = f"© {year} 济世 · AI 健康管理助手"
+        footer_right = '建议按右上角"打印 → 另存为PDF"导出为 PDF（A4 纵向）。'
+        print_button = "导出为 PDF"
 
     styled_html = f"""<!doctype html>
-<html lang="zh-CN">
+<html lang="{lang_code}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1422,7 +1587,7 @@ footer.report-footer{
     <header class="report-header">
       <!-- 行1：左上 logo -->
       <div class="brand">
-        <span class="logo"></span><span>检小知</span>
+        {'<img src="' + logo_base64 + '" class="logo" alt="Logo">' if logo_base64 else ''}<span>{brand_name}</span>
       </div>
 
       <!-- 行2：居中标题（加粗） -->
@@ -1431,9 +1596,9 @@ footer.report-footer{
       <!-- 行3：居中信息条 -->
       <div class="meta-box">
         <div class="meta-items">
-          <div class="meta-item"><span class="k">生成时间</span><span class="v">{now_str}</span></div>
-          <div class="meta-item"><span class="k">版本</span><span class="v">{version}</span></div>
-          <div class="meta-item"><span class="k">来源</span><span class="v">{user_name}</span></div>
+          <div class="meta-item"><span class="k">{meta_labels['generated_time']}</span><span class="v">{now_str}</span></div>
+          <div class="meta-item"><span class="k">{meta_labels['version']}</span><span class="v">{version}</span></div>
+          <div class="meta-item"><span class="k">{meta_labels['source']}</span><span class="v">{user_name}</span></div>
         </div>
       </div>
     </header>
@@ -1441,16 +1606,16 @@ footer.report-footer{
     {html_content}
 
     <div class="disclaimer">
-      本报告由智能体<strong>检小知</strong>基于您提供的信息自动生成，仅供健康参考，不作为临床诊断依据。如有异常建议至正规医疗机构进一步检查与就诊。
+      {disclaimer_text}
     </div>
 
     <footer class="report-footer">
-      <span>© {year} 检小知 · AI 体检报告助手</span>
-      <span>建议按右上角“打印 → 另存为PDF”导出为 PDF（A4 纵向）。</span>
+      <span>{footer_left}</span>
+      <span>{footer_right}</span>
     </footer>
   </div>
 
-  <button class="no-print" onclick="window.print()" style="position:fixed;right:16px;bottom:16px;border:none;padding:10px 14px;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer;">导出为 PDF</button>
+  <button class="no-print" onclick="window.print()" style="position:fixed;right:16px;bottom:16px;border:none;padding:10px 14px;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer;">{print_button}</button>
 </body>
 </html>
 """
@@ -1507,7 +1672,7 @@ def export_report(session_id):
             import os
             from datetime import datetime
 
-            styled_html = render_health_report_html(report)
+            styled_html = render_health_report_html(report, language=language)
             
             # 创建临时文件
             temp_dir = tempfile.gettempdir()

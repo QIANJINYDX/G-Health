@@ -36,8 +36,21 @@ if __name__ == "__main__":
         if config == 'development':
             app.run(debug=True,use_reloader=False)
         else:
-            from werkzeug.serving import run_simple
-            run_simple('0.0.0.0', 52315, app)
+            # Use Waitress as production WSGI server (no warning)
+            try:
+                from waitress import serve
+                print(f"\n{'='*60}")
+                print(f"Starting Waitress server on http://0.0.0.0:52315")
+                print(f"Press CTRL+C to stop the server")
+                print(f"{'='*60}\n")
+                serve(app, host='0.0.0.0', port=52315, _quiet=False)
+            except ImportError:
+                print("ERROR: waitress is not installed. Please run: pip install waitress")
+                print("Falling back to Werkzeug development server...")
+                from werkzeug.serving import run_simple
+                run_simple('0.0.0.0', 52315, app)
+            except KeyboardInterrupt:
+                print("\n\nServer stopped by user")
     finally:
         print("vllm_process.terminate()")
         # vllm_process.terminate()

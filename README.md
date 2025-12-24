@@ -65,6 +65,16 @@ This project implements a comprehensive multi-agent medical system for health ex
    conda create -n jishi python=3.11
    conda activate jishi
    ``` 
+3 下载模型
+
+4 下载表格数据
+csv数据
+
+5 配置magic-pdf
+modelscope download --model ppaanngggg/layoutreader --local_dir magic-pdf-models/layoutreader
+modelscope download --model OpenDataLab/PDF-Extract-Kit-1.0 --local_dir magic-pdf-models/PDF-Extract-Kit-1.0
+配置magic-pdf-models/magic-pdf.json目录下models-dir为PDF-Extract-Kit-1.0，layoutreader-model-dir为layoutreader
+配置app/util/file_detection.py中的MINERU_TOOLS_CONFIG_JSON为绝对路径
 
 ## Usage
 
