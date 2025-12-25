@@ -211,6 +211,7 @@ def get_messages(session_id):
             'created_at': m.created_at.isoformat(),
             'risk_model': m.risk_model if m.message_type == 3 else None,  # 使用消息中存储的风险模型ID
             'references': m.references,  # 添加参考文献
+            'mcp_response': getattr(m, 'mcp_response', None),  # MCP工具调用响应
             'has_image': m.has_image,  # 是否有图片
             'image_data': m.image_data,  # 图片数据
             'follow_up_questions': m.follow_up_questions,  # 引导问题
@@ -664,14 +665,117 @@ def send_message(session_id):
                     print(f"[chat_with_llm] 流式输出: True")
                     
                     # 调用流式AI对话
-                    stream_response,references = chat_with_llm(
+                    result = chat_with_llm(
                         messages=formatted_messages,
                         client=ollama_client,
                         model=model,  # 使用从请求中获取的模型参数
                         use_rag=rag_enabled,
                         deep_think=deep_think,
-                        stream=True
+                        stream=True,
+                        use_mcp=True  # 启用MCP
                     )
+                    
+                    # 解析返回值（可能是2个或3个值）
+                    try:
+                        if isinstance(result, tuple):
+                            if len(result) == 3:
+                                stream_response, references, mcp_data = result
+                            elif len(result) == 2:
+                                stream_response, references = result
+                                mcp_data = None
+                            else:
+                                stream_response = result[0] if result else None
+                                references = None
+                                mcp_data = None
+                        else:
+                            stream_response = result
+                            references = None
+                            mcp_data = None
+                    except Exception as e:
+                        print(f"解析返回值错误: {e}")
+                        stream_response = result
+                        references = None
+                        mcp_data = None
+                    
+                    # 处理MCP数据，准备用于发送和保存
+                    processed_mcp_data = None
+                    if mcp_data and (mcp_data.get("tool_logs") or mcp_data.get("result")):
+                        print("MCP工具调用日志：", mcp_data.get("tool_logs"))
+                        print("MCP结果：", mcp_data.get("result"))
+                        
+                        # 处理MCP数据，确保安全序列化
+                        mcp_result = mcp_data.get('result', '')
+                        mcp_tool_logs = mcp_data.get('tool_logs') or []
+                        
+                        # 确保result是字符串
+                        if mcp_result is not None:
+                            mcp_result = str(mcp_result)
+                        else:
+                            mcp_result = ''
+                        
+                        # 处理tool_logs，确保每个项都是字符串且长度合理
+                        processed_tool_logs = []
+                        for log in mcp_tool_logs:
+                            if log is None:
+                                continue
+                            log_str = str(log) if not isinstance(log, str) else log
+                            # 限制每个日志项的最大长度（5000字符）
+                            if len(log_str) > 5000:
+                                log_str = log_str[:5000] + "...(已截断)"
+                            processed_tool_logs.append(log_str)
+                        
+                        # 限制result的长度（10000字符）
+                        if len(mcp_result) > 10000:
+                            mcp_result = mcp_result[:10000] + "...(已截断)"
+                        
+                        # 保存处理后的数据，用于后续保存到数据库
+                        processed_mcp_data = {
+                            'result': mcp_result,
+                            'tool_logs': processed_tool_logs
+                        }
+                    
+                    # 发送MCP响应到前端
+                    if processed_mcp_data:
+                        # 发送MCP处理开始信号
+                        yield f"data: {json.dumps({'type': 'mcp_processing_start'}, ensure_ascii=False)}\n\n"
+                        
+                        # 发送MCP工具调用结果
+                        try:
+                            mcp_response_data = {
+                                'type': 'mcp_response',
+                                'result': processed_mcp_data['result'],
+                                'tool_logs': processed_mcp_data['tool_logs']
+                            }
+                            # 使用ensure_ascii=False正确处理中文，separators参数减小JSON大小
+                            # 使用strict=False允许处理控制字符
+                            json_str = json.dumps(mcp_response_data, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+                            
+                            # 验证JSON字符串是否有效
+                            json.loads(json_str)  # 如果无效会抛出异常
+                            
+                            # 确保SSE格式正确：data: {json}\n\n
+                            yield f"data: {json_str}\n\n"
+                        except (TypeError, ValueError, json.JSONDecodeError) as e:
+                            print(f"MCP响应JSON序列化错误: {e}")
+                            print(f"原始数据长度 - result: {len(processed_mcp_data.get('result', ''))}, tool_logs: {len(processed_mcp_data.get('tool_logs', []))}")
+                            # 如果序列化失败，发送简化版本
+                            try:
+                                # 进一步简化数据
+                                simple_result = processed_mcp_data['result'][:500] if processed_mcp_data.get('result') else ''
+                                simple_data = {
+                                    'type': 'mcp_response',
+                                    'result': simple_result,
+                                    'tool_logs': [log[:200] for log in processed_mcp_data.get('tool_logs', [])[:3]]  # 只保留前3个，每个最多200字符
+                                }
+                                json_str = json.dumps(simple_data, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+                                yield f"data: {json_str}\n\n"
+                            except Exception as e2:
+                                print(f"简化版本序列化也失败: {e2}")
+                                # 最后的兜底方案：只发送类型
+                                yield f"data: {json.dumps({'type': 'mcp_response', 'result': '数据过大，无法显示', 'tool_logs': []}, ensure_ascii=False)}\n\n"
+                        
+                        # 发送MCP处理完成信号
+                        yield f"data: {json.dumps({'type': 'mcp_processing_complete'}, ensure_ascii=False)}\n\n"
                     
                     # 发送RAG处理完成信号
                     if rag_enabled:
@@ -700,7 +804,24 @@ def send_message(session_id):
                     else:
                         # 处理真正的流式响应
                         try:
+                            think_content_accumulated = ""  # 累积思考内容
+                            think_content_sent = False  # 标记是否已发送思考内容
+                            
                             for chunk in stream_response:
+                                # 先检查是否有思考内容
+                                if hasattr(chunk, 'message') and hasattr(chunk.message, 'thinking'):
+                                    thinking = chunk.message.thinking
+                                    if thinking:
+                                        think_content_accumulated += thinking
+                                        # 如果思考内容还没有发送过，先发送思考部分
+                                        if not think_content_sent:
+                                            yield f"data: {json.dumps({'type': 'thinking', 'content': thinking, 'done': False})}\n\n"
+                                            think_content_sent = True
+                                        else:
+                                            # 如果已经发送过，继续追加思考内容
+                                            yield f"data: {json.dumps({'type': 'thinking', 'content': thinking, 'done': False})}\n\n"
+                                
+                                # 然后处理内容部分
                                 if hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
                                     content = chunk.message.content
                                     if content:
@@ -712,11 +833,40 @@ def send_message(session_id):
                             try:
                                 if hasattr(stream_response, 'message') and hasattr(stream_response.message, 'content'):
                                     full_response = stream_response.message.content
+                                    # 尝试获取思考内容
+                                    if hasattr(stream_response, 'message') and hasattr(stream_response.message, 'thinking'):
+                                        think_content_accumulated = stream_response.message.thinking or ""
                                     yield f"data: {json.dumps({'type': 'content', 'content': full_response, 'done': True})}\n\n"
                             except:
                                 # 如果都失败了，发送错误
                                 yield f"data: {json.dumps({'type': 'error', 'message': '流式响应处理失败'})}\n\n"
                                 return
+                    
+                    # 流式传输完成后，将思考内容和回答内容组合
+                    # 格式：<think>思考内容</think>回答内容
+                    message_content_to_save = full_response
+                    if think_content_accumulated:
+                        message_content_to_save = f"<think>{think_content_accumulated}</think>{full_response}"
+                        print(f"[保存消息] 包含思考内容，思考内容长度: {len(think_content_accumulated)}, 回答内容长度: {len(full_response)}")
+                    
+                    # 准备MCP响应数据用于保存（使用处理后的数据，进一步限制大小）
+                    mcp_response_to_save = None
+                    if processed_mcp_data:
+                        # 进一步限制保存的数据大小，避免数据库字段过大
+                        mcp_response_to_save = {
+                            'result': processed_mcp_data['result'],
+                            'tool_logs': []
+                        }
+                        # 限制result长度（5000字符用于保存）
+                        if mcp_response_to_save['result'] and len(mcp_response_to_save['result']) > 5000:
+                            mcp_response_to_save['result'] = mcp_response_to_save['result'][:5000] + "...(已截断)"
+                        # 限制tool_logs数量和长度（最多保存10个，每个最多2000字符）
+                        if processed_mcp_data['tool_logs']:
+                            for log in processed_mcp_data['tool_logs'][:10]:
+                                log_str = str(log) if not isinstance(log, str) else log
+                                if len(log_str) > 2000:
+                                    log_str = log_str[:2000] + "...(已截断)"
+                                mcp_response_to_save['tool_logs'].append(log_str)
                     
                     # 流式传输完成后，生成后续追问建议
                     follow_up_questions = None
@@ -731,12 +881,13 @@ def send_message(session_id):
                         print(f"生成后续追问建议失败: {str(follow_up_error)}")
                         # 不中断流式传输，只记录错误
                     
-                    # 保存AI回复（包含引导问题）
+                    # 保存AI回复（包含思考内容、引导问题和MCP响应）
                     ai_message = chat_controller.add_message(
                         session_id, 
-                        full_response, 
+                        message_content_to_save,  # 使用包含思考内容的完整消息
                         is_user=False,
                         references=references,
+                        mcp_response=mcp_response_to_save,
                         follow_up_questions=follow_up_questions
                     )
                     
@@ -1655,7 +1806,7 @@ def export_report(session_id):
             report = report_result
         
         # 去除<think></think>部分
-        from app.util.clinical_analyst import clean_think
+        from app.util.RAG import clean_think
         report = clean_think(report)
         
         # 去除所有的```标记

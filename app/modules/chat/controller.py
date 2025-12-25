@@ -27,7 +27,7 @@ class ChatController:
         """获取会话的指定类型的消息"""
         return ChatMessage.query.filter_by(session_id=session_id, message_type=message_type).order_by(ChatMessage.created_at).all()
 
-    def add_message(self, session_id, content, is_user=True, message_type=0, is_visible=True, risk_model=None, references=None, has_image=False, image_data=None, follow_up_questions=None, display_mode='default', stages=None):
+    def add_message(self, session_id, content, is_user=True, message_type=0, is_visible=True, risk_model=None, references=None, mcp_response=None, has_image=False, image_data=None, follow_up_questions=None, display_mode='default', stages=None):
         """添加新消息"""
         message = ChatMessage(
             session_id=session_id,
@@ -37,6 +37,7 @@ class ChatController:
             is_visible=is_visible,
             risk_model=risk_model,
             references=references,
+            mcp_response=mcp_response,
             has_image=has_image,
             image_data=image_data,
             follow_up_questions=follow_up_questions,

@@ -89,6 +89,7 @@ class ChatMessage(db.Model):
     is_visible = db.Column(db.Boolean, default=True)  # True表示显示消息，False表示隐藏消息
     risk_model = db.Column(db.Integer, nullable=True)  # 风险模型ID，仅当message_type=3时有效
     references = db.Column(db.JSON, nullable=True)  # 存储参考文献的JSON数据
+    mcp_response = db.Column(db.JSON, nullable=True)  # 存储MCP工具调用响应数据
     has_image = db.Column(db.Boolean, default=False)  # 是否存在图片
     image_data = db.Column(db.Text, nullable=True)  # 图片数据（base64编码）
     follow_up_questions = db.Column(db.JSON, nullable=True)  # 存储AI回复对应的引导问题列表

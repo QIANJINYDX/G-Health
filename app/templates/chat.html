@@ -2588,6 +2588,75 @@
                     messageCard.appendChild(refDiv);
                 }
                 
+                // MCP工具调用响应卡片
+                if (message.mcp_response && (message.mcp_response.tool_logs || message.mcp_response.result)) {
+                    const mcpDiv = document.createElement('div');
+                    mcpDiv.className = 'alert alert-info mb-2';
+                    mcpDiv.style.backgroundColor = '#e7f3ff';
+                    mcpDiv.style.border = '1px solid #b3d9ff';
+                    mcpDiv.style.display = 'block';
+                    const mcpHeader = document.createElement('div');
+                    mcpHeader.style.display = 'flex';
+                    mcpHeader.style.alignItems = 'center';
+                    mcpHeader.style.gap = '8px';
+                    mcpHeader.style.cursor = 'pointer';
+                    mcpHeader.style.marginBottom = '8px';
+                    mcpHeader.style.color = '#0066cc';
+                    mcpHeader.style.fontSize = '16px';
+                    mcpHeader.style.fontWeight = 'bold';
+                    mcpHeader.innerHTML = `
+                        <span style="color:inherit;font-size:14px;font-weight:normal;">展开工具调用详情</span>
+                        <span class="mcp-toggle-icon" style="color:inherit;font-size:14px;">▼</span>
+                    `;
+                    const mcpContent = document.createElement('div');
+                    mcpContent.style.display = 'none';
+                    
+                    // 显示工具调用日志
+                    if (message.mcp_response.tool_logs && Array.isArray(message.mcp_response.tool_logs) && message.mcp_response.tool_logs.length > 0) {
+                        message.mcp_response.tool_logs.forEach((log, index) => {
+                            const logItem = document.createElement('div');
+                            logItem.className = 'card mb-2';
+                            logItem.style.backgroundColor = '#fff';
+                            logItem.style.border = '1px solid #b3d9ff';
+                            logItem.style.color = '#333';
+                            logItem.style.fontSize = '14px';
+                            logItem.style.borderLeft = '4px solid #0066cc';
+                            logItem.style.paddingLeft = '12px';
+                            let cleanedLog = preprocessText(log)
+                                .replace(/\\uf357|[\uf357]/g, ' ')
+                                .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                            logItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><pre style="white-space: pre-wrap;word-wrap: break-word;margin:0;">${cleanedLog}</pre></div>`;
+                            mcpContent.appendChild(logItem);
+                        });
+                    }
+                    
+                    // 如果有MCP结果，也显示
+                    if (message.mcp_response.result) {
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'card mb-2';
+                        resultItem.style.backgroundColor = '#fff';
+                        resultItem.style.border = '1px solid #b3d9ff';
+                        resultItem.style.color = '#333';
+                        resultItem.style.fontSize = '14px';
+                        resultItem.style.borderLeft = '4px solid #0066cc';
+                        resultItem.style.paddingLeft = '12px';
+                        let cleanedResult = preprocessText(message.mcp_response.result)
+                            .replace(/\\uf357|[\uf357]/g, ' ')
+                            .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                        resultItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><strong>工具调用结果：</strong><div style="margin-top:8px;">${cleanedResult}</div></div>`;
+                        mcpContent.appendChild(resultItem);
+                    }
+                    
+                    mcpHeader.onclick = function() {
+                        const isHidden = mcpContent.style.display === 'none';
+                        mcpContent.style.display = isHidden ? 'block' : 'none';
+                        mcpHeader.querySelector('.mcp-toggle-icon').textContent = isHidden ? '▲' : '▼';
+                    };
+                    mcpDiv.appendChild(mcpHeader);
+                    mcpDiv.appendChild(mcpContent);
+                    messageCard.appendChild(mcpDiv);
+                }
+                
                 // AI消息：分离<think>内容
                 const thinkMatch = message.content.match(/<think>([\s\S]*?)<\/think>/i);
                 let mainContent = message.content;
@@ -2844,14 +2913,16 @@
                 chatMessages.appendChild(messageElement);
             }
             
-            // 滚动到新消息位置
-            setTimeout(() => {
-                messageElement.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start',
-                    inline: 'nearest'
-                });
-            }, 100);
+            // 只在用户消息时滚动，AI回答时不自动滚动
+            if (message.role === 'user') {
+                setTimeout(() => {
+                    messageElement.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start',
+                        inline: 'nearest'
+                    });
+                }, 100);
+            }
         }
 
         // 复制消息内容
@@ -3268,6 +3339,105 @@
                                         console.log('RAG处理完成');
                                         break;
                                         
+                                    case 'mcp_processing_start':
+                                        console.log('开始MCP工具调用处理');
+                                        break;
+                                        
+                                    case 'mcp_processing_complete':
+                                        console.log('MCP工具调用处理完成');
+                                        break;
+                                        
+                                    case 'mcp_response':
+                                        console.log('收到MCP响应:', data);
+                                        // 显示MCP工具调用结果（只要有tool_logs或result就显示）
+                                        if ((data.tool_logs && data.tool_logs.length > 0) || data.result) {
+                                            const mcpDiv = document.createElement('div');
+                                            mcpDiv.className = 'alert alert-info mb-2';
+                                            mcpDiv.style.backgroundColor = '#e7f3ff';
+                                            mcpDiv.style.border = '1px solid #b3d9ff';
+                                            mcpDiv.style.display = 'block';
+                                            const mcpHeader = document.createElement('div');
+                                            mcpHeader.style.display = 'flex';
+                                            mcpHeader.style.alignItems = 'center';
+                                            mcpHeader.style.gap = '8px';
+                                            mcpHeader.style.cursor = 'pointer';
+                                            mcpHeader.style.marginBottom = '8px';
+                                            mcpHeader.style.color = '#0066cc';
+                                            mcpHeader.style.fontSize = '16px';
+                                            mcpHeader.style.fontWeight = 'bold';
+                                            mcpHeader.innerHTML = `
+                                                <span style="color:inherit;font-size:14px;font-weight:normal;">展开工具调用详情</span>
+                                                <span class="mcp-toggle-icon" style="color:inherit;font-size:14px;">▼</span>
+                                            `;
+                                            const mcpContent = document.createElement('div');
+                                            mcpContent.style.display = 'none';
+                                            
+                                            // 显示工具调用日志
+                                            if (data.tool_logs && Array.isArray(data.tool_logs) && data.tool_logs.length > 0) {
+                                                data.tool_logs.forEach((log, index) => {
+                                                    const logItem = document.createElement('div');
+                                                    logItem.className = 'card mb-2';
+                                                    logItem.style.backgroundColor = '#fff';
+                                                    logItem.style.border = '1px solid #b3d9ff';
+                                                    logItem.style.color = '#333';
+                                                    logItem.style.fontSize = '14px';
+                                                    logItem.style.borderLeft = '4px solid #0066cc';
+                                                    logItem.style.paddingLeft = '12px';
+                                                    let cleanedLog = preprocessText(log)
+                                                        .replace(/\\uf357|[\uf357]/g, ' ')
+                                                        .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                                                    logItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><pre style="white-space: pre-wrap;word-wrap: break-word;margin:0;">${cleanedLog}</pre></div>`;
+                                                    mcpContent.appendChild(logItem);
+                                                });
+                                            }
+                                            
+                                            // 如果有MCP结果，也显示
+                                            if (data.result) {
+                                                const resultItem = document.createElement('div');
+                                                resultItem.className = 'card mb-2';
+                                                resultItem.style.backgroundColor = '#fff';
+                                                resultItem.style.border = '1px solid #b3d9ff';
+                                                resultItem.style.color = '#333';
+                                                resultItem.style.fontSize = '14px';
+                                                resultItem.style.borderLeft = '4px solid #0066cc';
+                                                resultItem.style.paddingLeft = '12px';
+                                                let cleanedResult = preprocessText(data.result)
+                                                    .replace(/\\uf357|[\uf357]/g, ' ')
+                                                    .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                                                resultItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><strong>工具调用结果：</strong><div style="margin-top:8px;">${cleanedResult}</div></div>`;
+                                                mcpContent.appendChild(resultItem);
+                                            }
+                                            
+                                            mcpHeader.onclick = function() {
+                                                const isHidden = mcpContent.style.display === 'none';
+                                                mcpContent.style.display = isHidden ? 'block' : 'none';
+                                                mcpHeader.querySelector('.mcp-toggle-icon').textContent = isHidden ? '▲' : '▼';
+                                            };
+                                            mcpDiv.appendChild(mcpHeader);
+                                            mcpDiv.appendChild(mcpContent);
+                                            
+                                            // 插入到ai-think之前
+                                            const aiThinkDiv = aiMessageContainer.querySelector('#ai-think');
+                                            if (aiThinkDiv) {
+                                                aiThinkDiv.parentNode.insertBefore(mcpDiv, aiThinkDiv);
+                                            } else {
+                                                // 如果没有ai-think，插入到ai-main之前
+                                                const aiMainDiv = aiMessageContainer.querySelector('#ai-main');
+                                                if (aiMainDiv) {
+                                                    aiMainDiv.parentNode.insertBefore(mcpDiv, aiMainDiv);
+                                                } else {
+                                                    aiMessageContainer.querySelector('.ai-message-body')?.appendChild(mcpDiv);
+                                                }
+                                            }
+                                            
+                                            // 移除自动滚动，让用户自己控制滚动位置
+                                            // setTimeout(() => {
+                                            //     const chatMessages = document.getElementById('chat-messages');
+                                            //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                            // }, 0);
+                                        }
+                                        break;
+                                        
                                     case 'rag_references':
                                         console.log('收到RAG相关资料:', data.references);
                                         // 立即显示检索到的相关资料
@@ -3319,11 +3489,11 @@
                                             aiThinkDiv.parentNode.insertBefore(refDiv, aiThinkDiv);
                                             referencesRendered = true;
                                             
-                                            // 滚动到底部以显示相关资料
-                                            setTimeout(() => {
-                                                const chatMessages = document.getElementById('chat-messages');
-                                                chatMessages.scrollTop = chatMessages.scrollHeight;
-                                            }, 0);
+                                            // 移除自动滚动，让用户自己控制滚动位置
+                                            // setTimeout(() => {
+                                            //     const chatMessages = document.getElementById('chat-messages');
+                                            //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                            // }, 0);
                                         }
                                         break;
                                         
@@ -3392,10 +3562,58 @@
                                             stageCard.appendChild(contentDiv);
                                             aiMainDiv.appendChild(stageCard);
 
-                                            setTimeout(() => {
-                                                const chatMessages = document.getElementById('chat-messages');
-                                                chatMessages.scrollTop = chatMessages.scrollHeight;
-                                            }, 0);
+                                            // 移除自动滚动，让用户自己控制滚动位置
+                                            // setTimeout(() => {
+                                            //     const chatMessages = document.getElementById('chat-messages');
+                                            //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                            // }, 0);
+                                        }
+                                        break;
+                                        
+                                    case 'thinking':
+                                        // 处理思考内容（深度思考模式）
+                                        if (data.content) {
+                                            if (!thinkRendered) {
+                                                // 首次收到思考内容，创建思考容器
+                                                const aiThinkDiv = aiMessageContainer.querySelector('#ai-think');
+                                                aiThinkDiv.innerHTML = '';
+                                                const thinkDiv = document.createElement('div');
+                                                thinkDiv.className = 'alert alert-info mb-2';
+                                                thinkDiv.style.backgroundColor = '#fff';
+                                                thinkDiv.style.border = 'none';
+                                                thinkDiv.style.display = 'block';
+                                                const tipDiv = document.createElement('div');
+                                                tipDiv.style.fontWeight = 'bold';
+                                                tipDiv.style.color = '#666';
+                                                tipDiv.style.marginBottom = '4px';
+                                                tipDiv.style.cursor = 'pointer';
+                                                tipDiv.innerHTML = `<span style="color:inherit;font-size:14px;font-weight:normal;" data-i18n="deepThinkActivated">${i18n.t('deepThinkActivated')}</span> <span class="think-toggle-icon" style="color:inherit;font-size:14px;">▲</span>`;
+                                                thinkDiv.appendChild(tipDiv);
+                                                const thinkContentDiv = document.createElement('div');
+                                                thinkContentDiv.style.color = '#888';
+                                                thinkContentDiv.style.fontSize = '14px';
+                                                thinkContentDiv.style.borderLeft = '4px solid #ddd';
+                                                thinkContentDiv.style.paddingLeft = '12px';
+                                                thinkContentDiv.id = 'think-content-div';
+                                                thinkDiv.appendChild(thinkContentDiv);
+                                                tipDiv.onclick = function() {
+                                                    const isHidden = thinkContentDiv.style.display === 'none';
+                                                    thinkContentDiv.style.display = isHidden ? '' : 'none';
+                                                    tipDiv.querySelector('.think-toggle-icon').textContent = isHidden ? '▲' : '▼';
+                                                };
+                                                aiThinkDiv.appendChild(thinkDiv);
+                                                thinkRendered = true;
+                                            }
+                                            // 追加思考内容
+                                            const thinkContentDiv = document.getElementById('think-content-div');
+                                            if (thinkContentDiv) {
+                                                // 累积思考内容
+                                                if (typeof thinkContent === 'undefined' || thinkContent === null) {
+                                                    thinkContent = '';
+                                                }
+                                                thinkContent += data.content;
+                                                thinkContentDiv.innerHTML = marked.parse(thinkContent);
+                                            }
                                         }
                                         break;
                                         
@@ -3459,54 +3677,66 @@
                                                         aiMainDiv.appendChild(stageCard);
                                                     }
 
-                                                    setTimeout(() => {
-                                                        const chatMessages = document.getElementById('chat-messages');
-                                                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                                                    }, 0);
+                                                    // 移除自动滚动，让用户自己控制滚动位置
+                                                    // setTimeout(() => {
+                                                    //     const chatMessages = document.getElementById('chat-messages');
+                                                    //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                                    // }, 0);
                                                 }
                                             } else {
                                                 // 非工作流：保持原来的覆盖渲染方式
                                                 const thinkMatch = aiContent.match(/<think>([\s\S]*?)<\/think>/i);
                                                 mainContent = aiContent;
-                                                thinkContent = null;
-                                                if (thinkMatch) {
-                                                    thinkContent = thinkMatch[1].trim();
-                                                    mainContent = aiContent.replace(thinkMatch[0], '').trim();
+                                                
+                                                // 只有在还没有通过 thinking 类型消息渲染过思考内容时，才处理内容中的思考标签
+                                                if (!thinkRendered) {
+                                                    thinkContent = null;
+                                                    if (thinkMatch) {
+                                                        thinkContent = thinkMatch[1].trim();
+                                                        mainContent = aiContent.replace(thinkMatch[0], '').trim();
+                                                    }
+                                                    if (thinkContent) {
+                                                        const aiThinkDiv = aiMessageContainer.querySelector('#ai-think');
+                                                        aiThinkDiv.innerHTML = '';
+                                                        const thinkDiv = document.createElement('div');
+                                                        thinkDiv.className = 'alert alert-info mb-2';
+                                                        thinkDiv.style.backgroundColor = '#fff';
+                                                        thinkDiv.style.border = 'none';
+                                                        thinkDiv.style.display = 'block';
+                                                        const tipDiv = document.createElement('div');
+                                                        tipDiv.style.fontWeight = 'bold';
+                                                        tipDiv.style.color = '#666';
+                                                        tipDiv.style.marginBottom = '4px';
+                                                        tipDiv.style.cursor = 'pointer';
+                                                        tipDiv.innerHTML = `<span style=\"color:inherit;font-size:14px;font-weight:normal;\" data-i18n=\"deepThinkActivated\">${i18n.t('deepThinkActivated')}</span> <span class=\"think-toggle-icon\" style=\"color:inherit;font-size:14px;\">▲</span>`;
+                                                        thinkDiv.appendChild(tipDiv);
+                                                        const thinkContentDiv = document.createElement('div');
+                                                        thinkContentDiv.style.color = '#888';
+                                                        thinkContentDiv.style.fontSize = '14px';
+                                                        thinkContentDiv.style.borderLeft = '4px solid #ddd';
+                                                        thinkContentDiv.style.paddingLeft = '12px';
+                                                        thinkContentDiv.id = 'think-content-div';
+                                                        thinkContentDiv.innerHTML = marked.parse(thinkContent);
+                                                        thinkDiv.appendChild(thinkContentDiv);
+                                                        tipDiv.onclick = function() {
+                                                            if (thinkContentDiv.style.display === 'none') {
+                                                                thinkContentDiv.style.display = '';
+                                                                tipDiv.querySelector('.think-toggle-icon').textContent = '▲';
+                                                            } else {
+                                                                thinkContentDiv.style.display = 'none';
+                                                                tipDiv.querySelector('.think-toggle-icon').textContent = '▼';
+                                                            }
+                                                        };
+                                                        aiThinkDiv.appendChild(thinkDiv);
+                                                        thinkRendered = true;
+                                                    }
+                                                } else {
+                                                    // 如果已经通过 thinking 类型消息渲染过思考内容，只处理主内容
+                                                    if (thinkMatch) {
+                                                        mainContent = aiContent.replace(thinkMatch[0], '').trim();
+                                                    }
                                                 }
-                                                if (thinkContent && !thinkRendered) {
-                                                    const aiThinkDiv = aiMessageContainer.querySelector('#ai-think');
-                                                    aiThinkDiv.innerHTML = '';
-                                                    const thinkDiv = document.createElement('div');
-                                                    thinkDiv.className = 'alert alert-info mb-2';
-                                                    thinkDiv.style.backgroundColor = '#fff';
-                                                    thinkDiv.style.border = 'none';
-                                                    thinkDiv.style.display = 'block';
-                                                    const tipDiv = document.createElement('div');
-                                                    tipDiv.style.fontWeight = 'bold';
-                                                    tipDiv.style.color = '#666';
-                                                    tipDiv.style.marginBottom = '4px';
-                                                    tipDiv.style.cursor = 'pointer';
-                                                    tipDiv.innerHTML = `<span style=\"color:inherit;font-size:14px;font-weight:normal;\" data-i18n=\"deepThinkActivated\">${i18n.t('deepThinkActivated')}</span> <span class=\"think-toggle-icon\" style=\"color:inherit;font-size:14px;\">▲</span>`;
-                                                    thinkDiv.appendChild(tipDiv);
-                                                    const thinkContentDiv = document.createElement('div');
-                                                    thinkContentDiv.style.color = '#888';
-                                                    thinkContentDiv.style.fontSize = '14px';
-                                                    thinkContentDiv.style.borderLeft = '4px solid #ddd';
-                                                    thinkContentDiv.style.paddingLeft = '12px';
-                                                    thinkContentDiv.innerHTML = marked.parse(thinkContent);
-                                                    thinkDiv.appendChild(thinkContentDiv);
-                                                    tipDiv.onclick = function() {
-                                                        if (thinkContentDiv.style.display === 'none') {
-                                                            thinkContentDiv.style.display = '';
-                                                            tipDiv.querySelector('.think-toggle-icon').textContent = '▲';
-                                                        } else {
-                                                            thinkContentDiv.style.display = 'none';
-                                                            tipDiv.querySelector('.think-toggle-icon').textContent = '▼';
-                                                        }
-                                                    };
-                                                    aiThinkDiv.appendChild(thinkDiv);
-                                                    thinkRendered = true;
-                                                }
+                                                
                                                 const aiMainDiv = aiMessageContainer.querySelector('#ai-main');
                                                 aiMainDiv.innerHTML = '';
                                                 if (mainContent) {
@@ -3517,10 +3747,11 @@
                                                     replyDiv.innerHTML = marked.parse(mainContent);
                                                     aiMainDiv.appendChild(replyDiv);
                                                 }
-                                                setTimeout(() => {
-                                                    const chatMessages = document.getElementById('chat-messages');
-                                                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                                                }, 0);
+                                                // 移除自动滚动，让用户自己控制滚动位置
+                                                // setTimeout(() => {
+                                                //     const chatMessages = document.getElementById('chat-messages');
+                                                //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                                // }, 0);
                                             }
                                         }
                                         break;
@@ -3610,10 +3841,10 @@
                                                 }
                                             }
                                             
-                                            // 滚动到底部以显示图片
-                                            setTimeout(() => {
-                                                chatMessages.scrollTop = chatMessages.scrollHeight;
-                                            }, 100);
+                                            // 移除自动滚动，让用户自己控制滚动位置
+                                            // setTimeout(() => {
+                                            //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                            // }, 100);
                                         };
                                         
                                         // 始终通过API获取图片数据，避免base64数据过大导致JSON截断
@@ -3715,11 +3946,11 @@
                                             `;
                                             aiMessageContainer.appendChild(actionsDiv);
                                         }
-                                        // 保持滚动条在底部（用setTimeout确保DOM已更新）
-                                        setTimeout(() => {
-                                            const chatMessages = document.getElementById('chat-messages');
-                                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                                        }, 0);
+                                        // 移除自动滚动，让用户自己控制滚动位置
+                                        // setTimeout(() => {
+                                        //     const chatMessages = document.getElementById('chat-messages');
+                                        //     chatMessages.scrollTop = chatMessages.scrollHeight;
+                                        // }, 0);
                                         break;
                                         
                                     case 'error':
@@ -4441,8 +4672,32 @@
                     <img src="/static/images/waveform-path.png" alt="语音输入" style="width: 20px; height: 20px; object-fit: contain;">
                 `;
                 voiceBtn.title = i18n.t('voiceInput');
-                // 只有当错误不是"no-speech"时才显示弹窗
-                if (e.error !== 'no-speech') {
+                
+                // 处理不同类型的错误
+                if (e.error === 'no-speech') {
+                    // 没有检测到语音，不显示错误
+                    return;
+                } else if (e.error === 'not-allowed') {
+                    // 权限被拒绝，显示友好的提示
+                    alert(i18n.t('microphonePermissionDenied'));
+                } else if (e.error === 'aborted') {
+                    // 用户中止，不显示错误
+                    return;
+                } else if (e.error === 'network') {
+                    // 网络错误，显示友好的提示
+                    console.error('语音识别网络错误:', e.error);
+                    alert(i18n.t('speechRecognitionNetworkError'));
+                } else if (e.error === 'audio-capture') {
+                    // 音频捕获错误
+                    console.error('语音识别音频捕获错误:', e.error);
+                    alert('无法捕获音频。请检查麦克风设备是否正常工作。');
+                } else if (e.error === 'service-not-allowed') {
+                    // 服务不允许
+                    console.error('语音识别服务不允许:', e.error);
+                    alert('语音识别服务不可用。请稍后重试。');
+                } else {
+                    // 其他错误，显示错误信息
+                    console.error('语音识别错误:', e.error);
                     alert(i18n.t('speechRecognitionError') + e.error);
                 }
             };
@@ -4457,11 +4712,101 @@
                 }
             };
 
-            voiceBtn.onclick = function() {
+            // 检查麦克风权限状态的函数
+            async function checkMicrophonePermission() {
+                try {
+                    // 使用 Permissions API 检查权限状态（如果支持）
+                    if (navigator.permissions && navigator.permissions.query) {
+                        const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+                        return permissionStatus.state; // 'granted', 'denied', 或 'prompt'
+                    }
+                    return null; // 不支持 Permissions API
+                } catch (error) {
+                    console.log('无法检查权限状态:', error);
+                    return null;
+                }
+            }
+
+            // 请求麦克风权限的函数
+            async function requestMicrophonePermission() {
+                try {
+                    // 先检查权限状态
+                    const permissionState = await checkMicrophonePermission();
+                    console.log('当前权限状态:', permissionState);
+                    
+                    // 如果权限被拒绝，尝试通过重新请求来触发权限提示
+                    if (permissionState === 'denied') {
+                        // 在某些浏览器中，即使权限被拒绝，重新调用 getUserMedia 也可能触发权限提示
+                        // 但大多数现代浏览器需要用户手动在设置中更改
+                        console.log('权限已被拒绝，尝试重新请求...');
+                    }
+                    
+                    // 使用 navigator.mediaDevices.getUserMedia 来请求权限
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    // 权限已授予，停止流（我们只需要权限，不需要实际的音频流）
+                    stream.getTracks().forEach(track => track.stop());
+                    return { success: true, stream: null };
+                } catch (error) {
+                    console.error('获取麦克风权限失败:', error);
+                    return { success: false, error: error };
+                }
+            }
+
+            voiceBtn.onclick = async function() {
                 if (recognizing) {
                     recognition.stop();
                 } else {
-                    recognition.start();
+                    // 在开始语音识别前，先请求麦克风权限
+                    const result = await requestMicrophonePermission();
+                    
+                    if (result.success) {
+                        // 权限已授予，开始语音识别
+                        try {
+                            recognition.start();
+                        } catch (startError) {
+                            console.error('启动语音识别失败:', startError);
+                            alert(i18n.t('speechRecognitionError') + startError.message);
+                        }
+                    } else {
+                        const error = result.error;
+                        // 处理不同类型的错误
+                        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                            // 权限被拒绝，提供重新申请的选项
+                            const shouldRetry = confirm(
+                                i18n.t('microphonePermissionDenied') + '\n\n' + 
+                                i18n.t('requestPermissionAgain') + '?'
+                            );
+                            if (shouldRetry) {
+                                // 再次尝试请求权限（在某些浏览器中可能会再次弹出权限提示）
+                                const retryResult = await requestMicrophonePermission();
+                                if (retryResult.success) {
+                                    try {
+                                        recognition.start();
+                                    } catch (startError) {
+                                        console.error('启动语音识别失败:', startError);
+                                        alert(i18n.t('speechRecognitionError') + startError.message);
+                                    }
+                                } else {
+                                    alert(i18n.t('microphonePermissionDenied') + '\n\n请手动在浏览器设置中允许麦克风权限。');
+                                }
+                            }
+                        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                            // 设备未找到
+                            alert(i18n.t('microphoneNotFound'));
+                        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                            // 设备被其他应用占用
+                            alert('麦克风设备可能被其他应用占用，请关闭其他使用麦克风的应用后重试。');
+                        } else {
+                            // 其他错误，尝试直接启动语音识别（某些浏览器可能仍然可以工作）
+                            console.log('尝试直接启动语音识别...');
+                            try {
+                                recognition.start();
+                            } catch (startError) {
+                                console.error('启动语音识别失败:', startError);
+                                alert(i18n.t('microphonePermissionRequired') + '\n错误: ' + error.message);
+                            }
+                        }
+                    }
                 }
             };
         } else {

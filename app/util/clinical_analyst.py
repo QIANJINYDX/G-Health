@@ -14,6 +14,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 from langchain_community.llms import Ollama as LangchainOllama
+# 从 RAG.py 导入 RAG 相关功能
+from app.util.RAG import MedicalRAG, clean_think, medical_rag, all_use_rag, init_medical_rag, get_medical_rag
 import os
 from tqdm import tqdm
 import re
@@ -198,234 +200,6 @@ def log_workflow_stage(stage_name: str, content: Any, logger: WorkflowLogger = N
     else:
         print(f"警告: 未提供logger实例，跳过记录阶段 '{stage_name}'")
 
-class MedicalRAG:
-    def __init__(self, pdf_dir: str = "app/util/rag_data/md_files"):
-        self.pdf_dir = pdf_dir
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="RAG/rag_model/ritrieve_zh_v1",
-            model_kwargs={'device': device},
-            encode_kwargs={'normalize_embeddings': True}
-        )
-        self.vector_store = None
-        self.qa_chain = None
-        self.persist_directory = "app/util/rag_data/chroma_db"
-
-    def load_and_process_pdfs(self):
-        """Load and process all PDFs in the textbooks directory"""
-        # Check if vector store already exists
-        if os.path.exists(self.persist_directory):
-            print("Loading existing vector store...")
-            self.vector_store = Chroma(
-                persist_directory=self.persist_directory,
-                embedding_function=self.embeddings
-            )
-        else:
-            print("Creating new vector store...")
-            documents = []
-            pdf_files = [f for f in os.listdir(self.pdf_dir) if f.endswith('.pdf')]
-            
-            print("Loading PDFs...")
-            for pdf_file in tqdm(pdf_files, desc="Loading PDF files"):
-                pdf_path = os.path.join(self.pdf_dir, pdf_file)
-                try:
-                    from langchain_community.document_loaders import PyPDFLoader
-                    loader = PyPDFLoader(pdf_path)
-                    documents.extend(loader.load())
-                except Exception as e:
-                    print(f"Error loading {pdf_file}: {str(e)}")
-
-            # Split documents into chunks with smaller size
-            from langchain.text_splitter import RecursiveCharacterTextSplitter
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=500,  # 减小chunk大小
-                chunk_overlap=50,  # 减小重叠大小
-                length_function=len,
-                separators=["\n\n", "\n", "。", "！", "？", ".", "!", "?", " ", ""]  # 添加中文分隔符
-            )
-            
-            # 分批处理文档
-            batch_size = 100  # 每批处理的文档数
-            all_chunks = []
-            total_batches = (len(documents) + batch_size - 1) // batch_size
-            
-            for i in tqdm(range(0, len(documents), batch_size), desc="Splitting documents into chunks", total=total_batches):
-                batch_docs = documents[i:i + batch_size]
-                chunks = text_splitter.split_documents(batch_docs)
-                all_chunks.extend(chunks)
-            
-            print(f"Created {len(all_chunks)} chunks from {len(documents)} documents")
-            
-            # 分批处理文档以避免超出embedding模型的batch size限制
-            batch_size = 1000  # 设置较小的batch size
-            total_batches = (len(all_chunks) + batch_size - 1) // batch_size
-            print(f"Processing {total_batches} batches of documents...")
-            
-            for i in tqdm(range(0, len(all_chunks), batch_size), desc="Creating vector store", total=total_batches):
-                batch_chunks = all_chunks[i:i + batch_size]
-                
-                if i == 0:
-                    # 第一批创建新的vector store
-                    self.vector_store = Chroma.from_documents(
-                        documents=batch_chunks,
-                        embedding=self.embeddings,
-                        persist_directory=self.persist_directory
-                    )
-                else:
-                    # 后续批次添加到现有的vector store
-                    self.vector_store.add_documents(batch_chunks)
-        
-        # Initialize QA chain
-        llm = Ollama(model="qwen3:0.6b")
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=self.vector_store.as_retriever(
-                search_kwargs={"k": 3}
-            )
-        )
-    def load_and_process_mds(self):
-        """Load and process all Markdown (.md) files in the specified directory"""
-        from langchain_community.document_loaders import TextLoader
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
-        from langchain.chains import RetrievalQA
-        from langchain_community.vectorstores import Chroma
-        from langchain_community.embeddings import OllamaEmbeddings  # 或使用 self.embeddings 直接
-        
-        # 检查向量存储是否已存在
-        if os.path.exists(self.persist_directory):
-            print("Loading existing vector store...")
-            self.vector_store = Chroma(
-                persist_directory=self.persist_directory,
-                embedding_function=self.embeddings
-            )
-        else:
-            print("Creating new vector store...")
-            documents = []
-            md_files = [f for f in os.listdir(self.pdf_dir) if f.endswith('.md')]
-            
-            print("Loading Markdown files...")
-            for md_file in tqdm(md_files, desc="Loading Markdown files"):
-                md_path = os.path.join(self.pdf_dir, md_file)
-                try:
-                    loader = TextLoader(md_path, encoding="utf-8")
-                    documents.extend(loader.load())
-                except Exception as e:
-                    print(f"Error loading {md_file}: {str(e)}")
-
-            # 拆分文本为小块
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=500,
-                chunk_overlap=50,
-                length_function=len,
-                separators=["\n\n", "\n", "。", "！", "？", ".", "!", "?", " ", ""]
-            )
-
-            batch_size = 100
-            all_chunks = []
-            total_batches = (len(documents) + batch_size - 1) // batch_size
-            
-            for i in tqdm(range(0, len(documents), batch_size), desc="Splitting documents into chunks", total=total_batches):
-                batch_docs = documents[i:i + batch_size]
-                chunks = text_splitter.split_documents(batch_docs)
-                all_chunks.extend(chunks)
-            
-            print(f"Created {len(all_chunks)} chunks from {len(documents)} documents")
-            
-            # 分批处理文档以避免超出embedding模型的batch size限制
-            batch_size = 1000  # 设置较小的batch size
-            total_batches = (len(all_chunks) + batch_size - 1) // batch_size
-            print(f"Processing {total_batches} batches of documents...")
-            
-            for i in tqdm(range(0, len(all_chunks), batch_size), desc="Creating vector store", total=total_batches):
-                batch_chunks = all_chunks[i:i + batch_size]
-                
-                if i == 0:
-                    # 第一批创建新的vector store
-                    self.vector_store = Chroma.from_documents(
-                        documents=batch_chunks,
-                        embedding=self.embeddings,
-                        persist_directory=self.persist_directory
-                    )
-                else:
-                    # 后续批次添加到现有的vector store
-                    self.vector_store.add_documents(batch_chunks)
-
-        # 初始化问答链
-        from langchain_community.llms import Ollama
-        llm = Ollama(model="qwen3:0.6b")
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=self.vector_store.as_retriever(
-                search_kwargs={"k": 3}
-            )
-        )
-
-
-    def answer_question(self, question: str) -> Dict[str, Any]:
-        """Answer a medical question using the RAG system
-        
-        Args:
-            question: The medical question to answer
-            
-        Returns:
-            Dict[str, Any]: A dictionary containing:
-                - answer: The model's answer
-                - references: List of dictionaries containing:
-                    - content: The reference content
-                    - source: The source document name
-        """
-        if not self.qa_chain:
-            raise ValueError("RAG system not initialized. Please call load_and_process_mds() first.")
-        
-        try:
-            # 获取检索结果
-            retriever = self.vector_store.as_retriever(search_kwargs={"k": 3})
-            docs = retriever.get_relevant_documents(question)
-            
-            # 准备参考信息
-            references = []
-            for doc in docs:
-                try:
-                    # 安全地获取元数据
-                    metadata = getattr(doc, 'metadata', {})
-                    source = metadata.get('source', 'Unknown')
-                    if isinstance(source, str):
-                        # 从文件路径中提取文件名
-                        source = os.path.basename(source)
-                    
-                    references.append({
-                        "content": doc.page_content,
-                        "source": source
-                    })
-                except Exception as e:
-                    print(f"Error processing document metadata: {str(e)}")
-                    continue
-            
-            # 获取模型回答
-            response = self.qa_chain.invoke({"query": question})
-            answer = clean_think(response["result"])
-            
-            # print("参考文档：", references)
-            return {
-                "answer": answer,
-                "references": references
-            }
-            
-        except Exception as e:
-            print(f"Error in answer_question: {str(e)}")
-            return {
-                "answer": "抱歉，处理您的问题时出现错误。",
-                "references": []
-            }
-
-def clean_think(result: str) -> str:
-    """Clean the think result"""
-    if "<think>" in result and "</think>" in result:
-        # 去除<think>标签及其之间内容
-        result = re.sub(r"<think>.*?</think>", "", result, flags=re.DOTALL)
-    return result
-
 def fix_json_format(json_str: str) -> str:
     """
     修复常见的JSON格式问题
@@ -535,17 +309,6 @@ def extract_metrics_fallback(text: str) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"备用指标提取出错: {str(e)}")
         return []
-
-all_use_rag=False
-if all_use_rag==True:
-    # 初始化RAG系统
-    medical_rag = MedicalRAG()
-
-    try:
-        medical_rag.load_and_process_mds()
-    except Exception as e:
-        print(f"Error initializing RAG system: {str(e)}")
-
 
 
 # ---- 单例：持久事件循环（后台线程） ----
@@ -753,6 +516,8 @@ def chat_with_llm(
         chat_messages = []
         rag_response = None
         references = None
+        mcp_result = None  # MCP响应结果
+        mcp_tool_logs = None  # MCP工具调用日志
         
         # 如果有系统提示词，添加到消息列表开头
         if system_prompt:
@@ -764,22 +529,28 @@ def chat_with_llm(
         # 添加用户消息
         chat_messages.extend(messages)
 
-        # 根据deep_think参数给最后一条用户消息添加后缀
-        if chat_messages and chat_messages[-1]["role"] == "user":
+        # 根据deep_think参数给最后一条用户消息添加后缀 (新版本不使用),但为了兼容济世模型使用/think后缀
+        if chat_messages and chat_messages[-1]["role"] == "user" and "jishi" in model:
             if deep_think:
                 # 思考模式，添加/think后缀（如果没有）
                 if not chat_messages[-1]["content"].rstrip().endswith("/think"):
-                    chat_messages[-1]["content"] = chat_messages[-1]["content"].rstrip() + " /think"
+                    chat_messages[-1]["content"] = chat_messages[-1]["content"].rstrip() + "/think"
+                deep_think=False # 济世模型后续传入的设为False
             else:
                 # 非思考模式，添加/no_think后缀（如果没有）
                 if not chat_messages[-1]["content"].rstrip().endswith("/no_think"):
-                    chat_messages[-1]["content"] = chat_messages[-1]["content"].rstrip() + " /no_think"
+                    chat_messages[-1]["content"] = chat_messages[-1]["content"].rstrip() + "/no_think"
 
         # 如果启用RAG且最后一条消息是用户消息，尝试获取相关医学知识
         if use_rag and chat_messages and chat_messages[-1]["role"] == "user":
             try:
+                # 如果 medical_rag 未初始化，尝试初始化
+                current_rag = get_medical_rag()
+                if current_rag is None:
+                    current_rag = init_medical_rag()
+                
                 user_question = chat_messages[-1]["content"]
-                rag_result = medical_rag.answer_question(user_question)
+                rag_result = current_rag.answer_question(user_question)
                 rag_response = rag_result["answer"]
                 references = rag_result["references"]
                 print("\n-------------------------------RAG索引完毕--------------------------------\n")
@@ -794,7 +565,7 @@ def chat_with_llm(
             except Exception as e:
                 print(f"RAG error: {str(e)}")
         # === MCP Tool Calling ===
-        if use_mcp and False:
+        if use_mcp:
             planner_agent = build_planner_agent([
                 "http://127.0.0.1:9001/mcp",  # time
                 "http://127.0.0.1:9000/mcp",  # calc
@@ -804,6 +575,9 @@ def chat_with_llm(
             ])
 
             planner_result, tool_logs = run_planner_with_logging_sync(planner_agent, chat_messages[-1]["content"])
+            # 保存MCP响应用于前端显示
+            mcp_result = planner_result
+            mcp_tool_logs = tool_logs
             if tool_logs:  # 只有真的调用了工具才插入
                 print("tool_logs:",tool_logs)
                 if system_prompt:
@@ -814,28 +588,57 @@ def chat_with_llm(
                         "content": f"以成功调用工具，工具调用结果：\n{tool_logs}"
                     })
         print("CHAT_MESSAGES:",chat_messages)
-
-        
+        print("DEEP_THINK:",deep_think)
+        print("STREAM:",stream)
+        print("MODEL:",model)
+        print("USE_RAG:",use_rag)
+        print("USE_MCP:",use_mcp)
         # 调用Ollama API
         response = client.chat(
             model=model,
             messages=chat_messages,
             stream=stream,
+            think=deep_think,
             keep_alive=-1
+            
         )
+        # if deep_think:
+        #     print("RESPONSE:",response.message.thinking)
+        # else:
+        #     print("RESPONSE:",response)
+        print("RESPONSE:",response)
         
         if stream:
-            # 返回流式响应对象
-            if use_rag:
-                return response,references
-            return response,None
+            # 返回流式响应对象，包含MCP响应
+            if use_rag and use_mcp:
+                return response, references, {"result": mcp_result, "tool_logs": mcp_tool_logs}
+            elif use_rag:
+                return response, references, None
+            elif use_mcp:
+                return response, None, {"result": mcp_result, "tool_logs": mcp_tool_logs}
+            else:
+                return response, None, None
         else:
             llm_response = response.message.content.strip()
-            if use_rag:
+            if use_rag and use_mcp:
+                return {
+                    "rag_response": rag_response,
+                    "llm_response": llm_response,
+                    "references": references,
+                    "mcp_result": mcp_result,
+                    "mcp_tool_logs": mcp_tool_logs
+                }
+            elif use_rag:
                 return {
                     "rag_response": rag_response,
                     "llm_response": llm_response,
                     "references": references
+                }
+            elif use_mcp:
+                return {
+                    "llm_response": llm_response,
+                    "mcp_result": mcp_result,
+                    "mcp_tool_logs": mcp_tool_logs
                 }
             else:
                 return llm_response

@@ -8,13 +8,9 @@ from pathlib import Path
 MCP_SERVICES = [
     ["python", "time_mcp.py", "--port", "9001"],
     ["python", "calculate_mcp.py", "--port", "9000"],
-    ["python", "baidumap.py", "--port", "9002"],
+    # ["python", "baidumap.py", "--port", "9002"],
     ["uv", "run", "--with", "nexonco-mcp", "nexonco", "--transport", "sse", "--port", "9007"],
-    ['node', 'howtocook-mcp/build/index.js','--transport','sse','--port','9008']
-
-    # 也可以是 shell 命令，例如:
-    # "node server.js"
-    # "fastmcp run my_service"
+    ['python','-m','howtocook-py-mcp.src.app', '--port', '9008']
 ]
 
 def start_services():
