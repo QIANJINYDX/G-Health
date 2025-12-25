@@ -518,6 +518,7 @@ def chat_with_llm(
         references = None
         mcp_result = None  # MCP响应结果
         mcp_tool_logs = None  # MCP工具调用日志
+        use_tool = False # 是否使用工具
         
         # 如果有系统提示词，添加到消息列表开头
         if system_prompt:
@@ -579,6 +580,7 @@ def chat_with_llm(
             mcp_result = planner_result
             mcp_tool_logs = tool_logs
             if tool_logs:  # 只有真的调用了工具才插入
+                use_tool = True
                 print("tool_logs:",tool_logs)
                 if system_prompt:
                     chat_messages[0]["content"] += f"\n\n以成功调用工具，工具调用结果：\n{tool_logs}"
@@ -610,17 +612,17 @@ def chat_with_llm(
         
         if stream:
             # 返回流式响应对象，包含MCP响应
-            if use_rag and use_mcp:
+            if use_rag and use_mcp and use_tool:
                 return response, references, {"result": mcp_result, "tool_logs": mcp_tool_logs}
             elif use_rag:
                 return response, references, None
-            elif use_mcp:
+            elif use_mcp and use_tool:
                 return response, None, {"result": mcp_result, "tool_logs": mcp_tool_logs}
             else:
                 return response, None, None
         else:
             llm_response = response.message.content.strip()
-            if use_rag and use_mcp:
+            if use_rag and use_mcp and use_tool:
                 return {
                     "rag_response": rag_response,
                     "llm_response": llm_response,
@@ -634,7 +636,7 @@ def chat_with_llm(
                     "llm_response": llm_response,
                     "references": references
                 }
-            elif use_mcp:
+            elif use_mcp and use_tool:
                 return {
                     "llm_response": llm_response,
                     "mcp_result": mcp_result,

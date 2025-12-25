@@ -175,7 +175,15 @@ const i18n = {
             'copied': '已复制',
             'genericError': '抱歉，发生了一些错误，请稍后重试。',
             'addAnyContent': '添加任意内容',
-            'dragDropFileHint': '将任意文件拖放到此处,以将其添加到对话中'
+            'dragDropFileHint': '将任意文件拖放到此处,以将其添加到对话中',
+            'expandToolCallDetails': '展开工具调用详情',
+            'toolCallResult': '工具调用结果',
+            'expandReferences': '展开相关资料',
+            'noModelDetected': '未检测到模型',
+            'default': '默认',
+            'loadFailedUseDefault': '加载失败，使用默认模型',
+            'imageLoadFailed': '图片加载失败',
+            'image': '图片'
         },
         
         en: {
@@ -350,7 +358,15 @@ const i18n = {
             'copied': 'Copied',
             'genericError': 'Sorry, something went wrong. Please try again later.',
             'addAnyContent': 'Add any content',
-            'dragDropFileHint': 'Drag and drop any file here to add it to the conversation'
+            'dragDropFileHint': 'Drag and drop any file here to add it to the conversation',
+            'expandToolCallDetails': 'Expand Tool Call Details',
+            'toolCallResult': 'Tool Call Result',
+            'expandReferences': 'Expand References',
+            'noModelDetected': 'No model detected',
+            'default': 'Default',
+            'loadFailedUseDefault': 'Load failed, using default model',
+            'imageLoadFailed': 'Image load failed',
+            'image': 'Image'
         }
     },
     

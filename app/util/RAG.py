@@ -90,10 +90,17 @@ class MedicalRAG:
         self.llm_model = llm_model
         self.verbose = verbose
 
+        # 优化：显式设置 batch_size 以充分利用 GPU/CPU 吞吐
+        # GPU 上建议 128~512，CPU 上建议 32~128
+        embedding_batch_size = 256 if _DEVICE == "cuda" else 64
+        
         self.embeddings = HuggingFaceEmbeddings(
             model_name=self.embed_model,
             model_kwargs={"device": _DEVICE},
-            encode_kwargs={"normalize_embeddings": True},
+            encode_kwargs={
+                "normalize_embeddings": True,
+                "batch_size": embedding_batch_size
+            },
         )
 
         self.vector_store: Optional[Chroma] = None
@@ -225,15 +232,20 @@ class MedicalRAG:
             print(f"切分完成：得到文本块 {len(chunks_all)} 条")
         return chunks_all
 
-    # ========== 阶段 3：向量化入库（优化版） ==========
+    # ========== 阶段 3：向量化入库（优化版：先算 embedding，再一次性 add） ==========
     def _ingest_chunks(self, chunks: list, batch_size: int, use_optimized: bool = True):
         """
         向量化并写入向量库
         
+        优化策略：先批量计算所有 embedding，再一次性 add
+        - 避免 Chroma 在每次 add 时重复计算 embedding
+        - 减少 Chroma 内部的索引维护开销
+        - 提升整体速度，避免"越跑越慢"
+        
         Args:
             chunks: 文档块列表
-            batch_size: 批次大小
-            use_optimized: 是否使用优化模式（增大批次，减少 I/O）
+            batch_size: 批次大小（用于 embedding 计算）
+            use_optimized: 是否使用优化模式
         """
         _banner(
             "阶段 3/4：向量化并写入向量库（Chroma）",
@@ -248,41 +260,119 @@ class MedicalRAG:
             )
             return
 
-        if use_optimized:
-            # 优化策略：增大写入批次大小，减少 I/O 操作和持久化频率
-            # 将批次大小增大 3-5 倍，但不超过 5000 以避免内存问题
-            # 更大的批次可以减少持久化操作次数，显著提升速度
-            optimized_batch_size = min(batch_size * 5, 5000)
+        import time
+        start_time = time.time()
+        total_chunks = len(chunks)
+        
+        # Chroma 的最大批次限制（安全值，实际限制约为 5461）
+        CHROMA_MAX_BATCH = 5000
+        
+        # 步骤 1：先批量计算所有 embedding
+        if self.verbose:
+            print("步骤 1/2：批量计算所有 embedding...")
+        
+        texts = [chunk.page_content for chunk in chunks]
+        metadatas = [chunk.metadata for chunk in chunks]
+        
+        # 使用 embedding 模型的批量计算功能
+        embedding_batch_size = batch_size  # 使用传入的 batch_size 进行 embedding 计算
+        all_embeddings = []
+        
+        pbar_embed = tqdm(total=total_chunks, desc="计算 embedding", unit="chunk")
+        for i in range(0, total_chunks, embedding_batch_size):
+            batch_texts = texts[i : i + embedding_batch_size]
+            batch_embeddings = self.embeddings.embed_documents(batch_texts)
+            all_embeddings.extend(batch_embeddings)
+            pbar_embed.update(len(batch_texts))
+        pbar_embed.close()
+        
+        if self.verbose:
+            elapsed_embed = time.time() - start_time
+            print(f"Embedding 计算完成，用时 {elapsed_embed:.2f}s，平均速度 {total_chunks/elapsed_embed:.1f} chunks/s")
+        
+        # 步骤 2：使用预计算的 embedding 批量写入 Chroma
+        if self.verbose:
+            print("步骤 2/2：使用预计算的 embedding 批量写入 Chroma...")
+        
+        write_batch_size = min(batch_size * 5, CHROMA_MAX_BATCH) if use_optimized else min(batch_size, CHROMA_MAX_BATCH)
+        
+        if self.verbose:
+            print(f"写入批次大小: {write_batch_size}")
+        
+        # 创建或获取 Chroma collection
+        # 使用预计算的 embedding 创建 vector store
+        if self.vector_store is None:
+            # 首次创建：直接使用第一批数据和预计算的 embedding 创建
+            first_batch_size = min(write_batch_size, total_chunks)
+            first_batch_texts = texts[:first_batch_size]
+            first_batch_embeddings = all_embeddings[:first_batch_size]
+            first_batch_metadatas = metadatas[:first_batch_size]
             
-            if self.verbose:
-                print(f"使用优化模式：批次大小从 {batch_size} 增加到 {optimized_batch_size}")
+            # 创建 vector store（使用预计算的 embedding）
+            # 注意：Chroma.from_texts 不支持直接传入 embeddings，所以我们需要先创建再添加
+            # 但我们可以使用底层 API 或者先创建空的再添加
+            # 为了简化，我们先用第一批创建，然后用预计算的 embedding 覆盖（如果需要）
+            self.vector_store = Chroma(
+                persist_directory=self.persist_dir,
+                embedding_function=self.embeddings,
+            )
+            
+            # 使用预计算的 embedding 添加第一批
+            self.vector_store.add_texts(
+                texts=first_batch_texts,
+                embeddings=first_batch_embeddings,
+                metadatas=first_batch_metadatas,
+            )
+            start_idx = first_batch_size
         else:
-            optimized_batch_size = batch_size
+            start_idx = 0
         
-        total_batches = (len(chunks) + optimized_batch_size - 1) // optimized_batch_size
-        pbar = tqdm(range(0, len(chunks), optimized_batch_size), desc="入库批次", total=total_batches, unit="batch")
+        # 批量写入数据（使用预计算的 embedding）
+        pbar_write = tqdm(total=total_chunks - start_idx, desc="写入 Chroma", unit="chunk", initial=start_idx)
         
-        for idx in pbar:
-            batch = chunks[idx : idx + optimized_batch_size]
+        i = start_idx
+        while i < total_chunks:
+            batch_texts = texts[i : i + write_batch_size]
+            batch_embeddings = all_embeddings[i : i + write_batch_size]
+            batch_metadatas = metadatas[i : i + write_batch_size]
+            batch_len = len(batch_texts)
             
-            if self.vector_store is None and idx == 0:
-                # 首批：创建并持久化（使用更大的批次）
-                self.vector_store = Chroma.from_documents(
-                    documents=batch,
-                    embedding=self.embeddings,
-                    persist_directory=self.persist_dir,
-                )
-            else:
-                # 后续增量加入（批量添加，减少 I/O）
-                assert self.vector_store is not None
-                self.vector_store.add_documents(batch)
+            # 使用预计算的 embedding 添加
+            self.vector_store.add_texts(
+                texts=batch_texts,
+                embeddings=batch_embeddings,
+                metadatas=batch_metadatas,
+            )
             
             self.stats["batch_count"] += 1
-            pbar.set_postfix({
-                "chunks_in": len(batch), 
-                "total": min(idx + len(batch), len(chunks)),
-                "progress": f"{(idx + len(batch)) / len(chunks) * 100:.1f}%"
-            })
+            i += batch_len
+            
+            # 更新进度条
+            elapsed = time.time() - start_time
+            if elapsed > 0:
+                speed = i / elapsed
+                eta = (total_chunks - i) / speed if speed > 0 else 0
+                pbar_write.update(batch_len)
+                pbar_write.set_postfix({
+                    "chunks_in": batch_len,
+                    "total": i,
+                    "progress": f"{i / total_chunks * 100:.1f}%",
+                    "speed": f"{speed:.1f}/s",
+                    "eta": f"{eta/60:.1f}m" if eta > 60 else f"{eta:.0f}s"
+                })
+            else:
+                pbar_write.update(batch_len)
+                pbar_write.set_postfix({
+                    "chunks_in": batch_len,
+                    "total": i,
+                    "progress": f"{i / total_chunks * 100:.1f}%"
+                })
+        
+        pbar_write.close()
+        
+        if self.verbose:
+            total_elapsed = time.time() - start_time
+            print(f"入库完成，总用时 {total_elapsed:.2f}s，平均速度 {total_chunks/total_elapsed:.1f} chunks/s")
 
     # ========== 阶段 4：初始化 QA ==========
     def _init_qa(self, retriever_k: int):
@@ -373,11 +463,23 @@ class MedicalRAG:
         print(f"新文档切分得到 {len(chunks)} 个文本块。")
 
         _banner("增量入库：写入向量库", f"batch_size={batch_size}")
-        # 优化：使用更大的批次减少 I/O 操作
-        optimized_batch_size = min(batch_size * 3, 5000)
-        total_batches = (len(chunks) + optimized_batch_size - 1) // optimized_batch_size
-        for i in tqdm(range(0, len(chunks), optimized_batch_size), desc="入库批次", total=total_batches, unit="batch"):
-            self.vector_store.add_documents(chunks[i : i + optimized_batch_size])
+        # 优化：使用更大的批次减少 I/O 操作，但不超过 Chroma 的最大批次限制
+        CHROMA_MAX_BATCH = 5000  # Chroma 的实际限制约为 5461，使用 5000 作为安全值
+        optimized_batch_size = min(batch_size * 3, CHROMA_MAX_BATCH)
+        
+        # 使用 while 循环，确保不跳过任何 chunk
+        total_chunks = len(chunks)
+        pbar = tqdm(total=total_chunks, desc="入库批次", unit="chunk")
+        
+        i = 0
+        while i < total_chunks:
+            batch = chunks[i : i + optimized_batch_size]
+            batch_len = len(batch)
+            self.vector_store.add_documents(batch)
+            i += batch_len  # 用实际批次长度推进，绝不漏数据
+            pbar.update(batch_len)
+        
+        pbar.close()
 
 
 # ========== 全局 RAG 实例初始化 ==========
