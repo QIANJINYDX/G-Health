@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify
 import argparse
 import os
 import sys
+import json
 from typing import Dict, Any
 
 # 添加项目根目录到路径，以便导入 RAG 模块
@@ -22,12 +23,15 @@ from app.util.RAG import MedicalRAG, clean_think
 
 app = Flask(__name__)
 
+# 配置 JSON 编码器，确保中文不被转义为 Unicode
+app.config['JSON_AS_ASCII'] = False
+
 # 全局 RAG 实例
 rag_instance: MedicalRAG = None
 
 # 默认配置（会在 main 函数中更新）
 DEFAULT_CONFIG = {
-    "data_dir": "app/util/rag_data/md_files",
+    "data_dir": "app/util/rag_data/mini_files",
     "persist_dir": "app/util/rag_data/chroma_db",
     "embed_model": "app/util/rag_model/Qwen3-Embedding-0.6B",
     "llm_model": "qwen3:0.6b",
@@ -89,19 +93,78 @@ def query():
         
         question = data['question']
         k = data.get('k', 3)  # 默认返回 top 3 结果
+        only_references = data.get('only_references', False)  # 是否只返回检索内容，不调用大模型
         
         # 确保 RAG 实例已初始化
         if rag_instance is None:
             initialize_rag(DEFAULT_CONFIG)
         
-        # 执行查询
-        result = rag_instance.answer_question(question, k=k)
-        
-        return jsonify({
-            "status": "success",
-            "answer": result["answer"],
-            "references": result["references"]
-        })
+        if only_references:
+            # 只检索，不调用大模型生成答案
+            if not rag_instance.vector_store:
+                raise RuntimeError("RAG 未初始化：请先调用 build_or_load()。")
+            
+            # 增加检索数量，以便过滤掉只有标题的块后仍有足够内容
+            retrieve_k = max(k * 3, 10)  # 至少检索10个，或k的3倍
+            retriever = rag_instance.vector_store.as_retriever(search_kwargs={"k": retrieve_k})
+            docs = retriever.get_relevant_documents(question)
+            
+            # 过滤掉只有标题的块
+            references = []
+            seen_sources = set()  # 用于去重相同来源的块
+            
+            for d in docs:
+                content = d.page_content.strip()
+                
+                # 跳过空内容
+                if not content:
+                    continue
+                
+                # 检查是否只包含标题行（以 # 开头，且内容很短或只有标题）
+                lines = content.split('\n')
+                non_empty_lines = [line.strip() for line in lines if line.strip()]
+                
+                # 如果只有一行且是标题，跳过
+                if len(non_empty_lines) == 1 and non_empty_lines[0].startswith('#'):
+                    continue
+                
+                # 如果内容太短（少于50个字符），且主要是标题，跳过
+                if len(content) < 50:
+                    # 检查是否主要是标题
+                    title_lines = sum(1 for line in non_empty_lines if line.startswith('#'))
+                    if title_lines >= len(non_empty_lines) * 0.7:  # 70%以上是标题
+                        continue
+                
+                meta = getattr(d, "metadata", {}) or {}
+                src = meta.get("source", "Unknown")
+                if isinstance(src, str):
+                    src = os.path.basename(src)
+                
+                # 去重：如果同一个来源已经有内容，跳过（保留第一个）
+                source_key = (src, content[:100])  # 使用来源和前100字符作为key
+                if source_key in seen_sources:
+                    continue
+                seen_sources.add(source_key)
+                
+                references.append({"content": content, "source": src})
+                
+                # 如果已经收集到足够的有效内容，停止
+                if len(references) >= k:
+                    break
+            
+            return jsonify({
+                "status": "success",
+                "references": references
+            })
+        else:
+            # 执行完整查询（检索 + LLM 生成答案）
+            result = rag_instance.answer_question(question, k=k)
+            
+            return jsonify({
+                "status": "success",
+                "answer": result["answer"],
+                "references": result["references"]
+            })
     
     except RuntimeError as e:
         return jsonify({
@@ -272,8 +335,8 @@ def main():
     parser.add_argument(
         '--port',
         type=int,
-        default=5000,
-        help='服务监听端口 (默认: 5000)'
+        default=5005,
+        help='服务监听端口 (默认: 5005)'
     )
     parser.add_argument(
         '--data-dir',
@@ -318,7 +381,47 @@ def main():
     elif args.mode == 'serve':
         start_service(config, host=args.host, port=args.port)
 
+# ========== HTTP 测试命令 ==========
+"""
+服务默认运行在 http://127.0.0.1:5005
 
+1. 健康检查：
+   curl http://127.0.0.1:5005/health
+
+2. 查询接口（测试问题：头疼怎么治疗）：
+   # 完整查询（检索 + LLM 生成答案）：
+   curl -X POST http://127.0.0.1:5005/query \
+     -H "Content-Type: application/json" \
+     -d '{"question": "头疼怎么治疗", "k": 3}' | jq .
+   
+   # 只返回检索内容（不调用大模型）：
+   curl -X POST http://127.0.0.1:5005/query \
+     -H "Content-Type: application/json" \
+     -d '{"question": "头疼怎么治疗", "k": 3, "only_references": true}' | jq .
+
+3. 获取服务状态：
+   curl http://127.0.0.1:5005/status
+
+4. 构建数据库（如果需要）：
+   curl -X POST http://127.0.0.1:5005/build \
+     -H "Content-Type: application/json" \
+     -d '{}'
+
+5. 其他测试问题示例：
+   # 只返回检索内容（推荐，速度快，不消耗 LLM 资源）：
+   curl -X POST http://127.0.0.1:5005/query \
+     -H "Content-Type: application/json" \
+     -d '{"question": "糖尿病的诊断标准是什么？", "k": 3, "only_references": true}' | jq .
+
+   curl -X POST http://127.0.0.1:5005/query \
+     -H "Content-Type: application/json" \
+     -d '{"question": "高血压的预防措施有哪些？", "k": 5, "only_references": true}' | jq .
+   
+   # 完整查询（包含 LLM 生成的答案）：
+   curl -X POST http://127.0.0.1:5005/query \
+     -H "Content-Type: application/json" \
+     -d '{"question": "糖尿病的诊断标准是什么？", "k": 3}' | jq .
+"""
 if __name__ == "__main__":
     main()
 

@@ -183,7 +183,11 @@ const i18n = {
             'default': '默认',
             'loadFailedUseDefault': '加载失败，使用默认模型',
             'imageLoadFailed': '图片加载失败',
-            'image': '图片'
+            'image': '图片',
+            'callTool': '调用工具',
+            'inputParameters': '传入参数',
+            'returnResult': '返回结果',
+            'truncated': '已截断'
         },
         
         en: {
@@ -366,7 +370,11 @@ const i18n = {
             'default': 'Default',
             'loadFailedUseDefault': 'Load failed, using default model',
             'imageLoadFailed': 'Image load failed',
-            'image': 'Image'
+            'image': 'Image',
+            'callTool': 'Call Tool',
+            'inputParameters': 'Input Parameters',
+            'returnResult': 'Return Result',
+            'truncated': 'Truncated'
         }
     },
     

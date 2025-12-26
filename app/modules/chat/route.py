@@ -672,7 +672,8 @@ def send_message(session_id):
                         use_rag=rag_enabled,
                         deep_think=deep_think,
                         stream=True,
-                        use_mcp=True  # 启用MCP
+                        use_mcp=True,  # 启用MCP
+                        language=language  # 传递语言参数
                     )
                     
                     # 解析返回值（可能是2个或3个值）
@@ -721,12 +722,14 @@ def send_message(session_id):
                             log_str = str(log) if not isinstance(log, str) else log
                             # 限制每个日志项的最大长度（5000字符）
                             if len(log_str) > 5000:
-                                log_str = log_str[:5000] + "...(已截断)"
+                                truncate_text = "...(已截断)" if language == 'zh' else "...(Truncated)"
+                                log_str = log_str[:5000] + truncate_text
                             processed_tool_logs.append(log_str)
                         
                         # 限制result的长度（10000字符）
                         if len(mcp_result) > 10000:
-                            mcp_result = mcp_result[:10000] + "...(已截断)"
+                            truncate_text = "...(已截断)" if language == 'zh' else "...(Truncated)"
+                            mcp_result = mcp_result[:10000] + truncate_text
                         
                         # 保存处理后的数据，用于后续保存到数据库
                         processed_mcp_data = {
@@ -858,14 +861,15 @@ def send_message(session_id):
                             'tool_logs': []
                         }
                         # 限制result长度（5000字符用于保存）
+                        truncate_text = "...(已截断)" if language == 'zh' else "...(Truncated)"
                         if mcp_response_to_save['result'] and len(mcp_response_to_save['result']) > 5000:
-                            mcp_response_to_save['result'] = mcp_response_to_save['result'][:5000] + "...(已截断)"
+                            mcp_response_to_save['result'] = mcp_response_to_save['result'][:5000] + truncate_text
                         # 限制tool_logs数量和长度（最多保存10个，每个最多2000字符）
                         if processed_mcp_data['tool_logs']:
                             for log in processed_mcp_data['tool_logs'][:10]:
                                 log_str = str(log) if not isinstance(log, str) else log
                                 if len(log_str) > 2000:
-                                    log_str = log_str[:2000] + "...(已截断)"
+                                    log_str = log_str[:2000] + truncate_text
                                 mcp_response_to_save['tool_logs'].append(log_str)
                     
                     # 流式传输完成后，生成后续追问建议

@@ -1901,6 +1901,29 @@
                     strong.textContent = i18n.t('toolCallResult') + '：';
                 }
             });
+            
+            // 更新工具调用日志中的文本标签
+            document.querySelectorAll('.card-body').forEach(cardBody => {
+                let html = cardBody.innerHTML;
+                const originalHtml = html;
+                
+                // 替换工具调用相关的文本
+                if (i18n.currentLang === 'en') {
+                    html = html.replace(/调用工具：/g, i18n.t('callTool') + '：');
+                    html = html.replace(/传入参数：/g, i18n.t('inputParameters') + '：');
+                    html = html.replace(/返回结果：/g, i18n.t('returnResult') + '：');
+                    html = html.replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                } else {
+                    html = html.replace(/Call Tool：/g, i18n.t('callTool') + '：');
+                    html = html.replace(/Input Parameters：/g, i18n.t('inputParameters') + '：');
+                    html = html.replace(/Return Result：/g, i18n.t('returnResult') + '：');
+                    html = html.replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                }
+                
+                if (html !== originalHtml) {
+                    cardBody.innerHTML = html;
+                }
+            });
         };
         
         // 更新风险评估表单中的文本
@@ -2660,6 +2683,20 @@
                             let cleanedLog = preprocessText(log)
                                 .replace(/\\uf357|[\uf357]/g, ' ')
                                 .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                            
+                            // 替换工具调用相关的文本标签（兼容中英文）
+                            if (i18n.currentLang === 'en') {
+                                cleanedLog = cleanedLog.replace(/调用工具：/g, i18n.t('callTool') + '：');
+                                cleanedLog = cleanedLog.replace(/传入参数：/g, i18n.t('inputParameters') + '：');
+                                cleanedLog = cleanedLog.replace(/返回结果：/g, i18n.t('returnResult') + '：');
+                                cleanedLog = cleanedLog.replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                            } else {
+                                cleanedLog = cleanedLog.replace(/Call Tool：/g, i18n.t('callTool') + '：');
+                                cleanedLog = cleanedLog.replace(/Input Parameters：/g, i18n.t('inputParameters') + '：');
+                                cleanedLog = cleanedLog.replace(/Return Result：/g, i18n.t('returnResult') + '：');
+                                cleanedLog = cleanedLog.replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                            }
+                            
                             // 使用markdown渲染工具调用日志
                             try {
                                 const renderedLog = marked.parse(cleanedLog);
@@ -2685,6 +2722,14 @@
                         let cleanedResult = preprocessText(message.mcp_response.result)
                             .replace(/\\uf357|[\uf357]/g, ' ')
                             .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                        
+                        // 替换截断文本（兼容中英文）
+                        if (i18n.currentLang === 'en') {
+                            cleanedResult = cleanedResult.replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                        } else {
+                            cleanedResult = cleanedResult.replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                        }
+                        
                         // 使用markdown渲染工具调用结果
                         try {
                             const renderedResult = marked.parse(cleanedResult);
@@ -3435,6 +3480,20 @@
                                                     let cleanedLog = preprocessText(log)
                                                         .replace(/\\uf357|[\uf357]/g, ' ')
                                                         .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                                                    
+                                                    // 替换工具调用相关的文本标签（兼容中英文）
+                                                    if (i18n.currentLang === 'en') {
+                                                        cleanedLog = cleanedLog.replace(/调用工具：/g, i18n.t('callTool') + '：');
+                                                        cleanedLog = cleanedLog.replace(/传入参数：/g, i18n.t('inputParameters') + '：');
+                                                        cleanedLog = cleanedLog.replace(/返回结果：/g, i18n.t('returnResult') + '：');
+                                                        cleanedLog = cleanedLog.replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                                                    } else {
+                                                        cleanedLog = cleanedLog.replace(/Call Tool：/g, i18n.t('callTool') + '：');
+                                                        cleanedLog = cleanedLog.replace(/Input Parameters：/g, i18n.t('inputParameters') + '：');
+                                                        cleanedLog = cleanedLog.replace(/Return Result：/g, i18n.t('returnResult') + '：');
+                                                        cleanedLog = cleanedLog.replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                                                    }
+                                                    
                                                     // 使用markdown渲染工具调用日志
                                                     try {
                                                         const renderedLog = marked.parse(cleanedLog);
@@ -3460,6 +3519,14 @@
                                                 let cleanedResult = preprocessText(data.result)
                                                     .replace(/\\uf357|[\uf357]/g, ' ')
                                                     .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                                                
+                                                // 替换截断文本（兼容中英文）
+                                                if (i18n.currentLang === 'en') {
+                                                    cleanedResult = cleanedResult.replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                                                } else {
+                                                    cleanedResult = cleanedResult.replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                                                }
+                                                
                                                 // 使用markdown渲染工具调用结果
                                                 try {
                                                     const renderedResult = marked.parse(cleanedResult);

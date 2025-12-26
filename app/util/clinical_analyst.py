@@ -39,9 +39,69 @@ import torch
 import traceback, linecache
 from datetime import datetime
 import os
+import requests
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print("Rag_device:",device)
+
+# RAG 服务配置
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://127.0.0.1:5005")
+
+
+def query_rag_service(question: str, k: int = 3, only_references: bool = True) -> Dict[str, Any]:
+    """
+    通过 HTTP 请求调用 RAG 服务
+    
+    Args:
+        question: 用户问题
+        k: 返回的 top k 结果数量
+        only_references: 是否只返回检索内容，不调用大模型（默认 True）
+        
+    Returns:
+        包含 answer 和 references 的字典
+        当 only_references=True 时，answer 为空字符串，只返回 references
+        
+    Raises:
+        Exception: 当服务调用失败时抛出异常
+    """
+    try:
+        response = requests.post(
+            f"{RAG_SERVICE_URL}/query",
+            json={"question": question, "k": k, "only_references": only_references},
+            timeout=200  # 200秒超时
+        )
+        response.raise_for_status()  # 如果状态码不是 200，会抛出异常
+        result = response.json()
+        
+        if result.get("status") == "success":
+            answer = result.get("answer", "")
+            references = result.get("references", [])
+            
+            # 如果只返回检索内容，将检索到的内容组合成文本
+            if only_references and references:
+                # 将检索到的内容组合成文本
+                answer = "\n\n".join([
+                    f"【来源：{ref.get('source', 'Unknown')}】\n{ref.get('content', '')}"
+                    for ref in references
+                ])
+            elif not answer or answer.strip() == "":
+                print(f"[警告] RAG 服务返回的答案为空，可能数据库中没有相关数据")
+                print(f"问题: {question}")
+                print(f"参考文献数量: {len(references)}")
+            
+            return {
+                "answer": answer,
+                "references": references
+            }
+        else:
+            error_msg = result.get('error', 'Unknown error')
+            raise Exception(f"RAG service returned error: {error_msg}")
+    except requests.exceptions.Timeout:
+        raise Exception(f"RAG service request timeout after 200s. Service URL: {RAG_SERVICE_URL}")
+    except requests.exceptions.ConnectionError:
+        raise Exception(f"无法连接到 RAG 服务，请确保服务已启动。服务地址: {RAG_SERVICE_URL}")
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"RAG 服务请求失败: {str(e)}. 服务地址: {RAG_SERVICE_URL}")
 
 class WorkflowLogger:
     """工作流日志记录器，用于记录整个工作流的所有阶段到单个JSON文件"""
@@ -357,7 +417,7 @@ def build_planner_agent(mcp_urls: List[str]) -> FunctionAgent:
     return runtime.run(_build())
 
 # ----  在同一 loop 上执行 planner，一次请求一个 Context ----
-def run_planner_with_logging_sync(agent: FunctionAgent, user_input: str) -> Tuple[str, List[Dict[str, Any]]]:
+def run_planner_with_logging_sync(agent: FunctionAgent, user_input: str, language: str = 'zh') -> Tuple[str, List[Dict[str, Any]]]:
     def _out_to_text_and_struct(out):
         """从各种常见结构中尽量提取出 (text, structured)。"""
         if out is None:
@@ -455,13 +515,23 @@ def run_planner_with_logging_sync(agent: FunctionAgent, user_input: str) -> Tupl
         resp = await handler
 
         # 汇总日志
+        # 根据语言设置文本标签
+        if language == 'en':
+            tool_label = "Call Tool"
+            args_label = "Input Parameters"
+            result_label = "Return Result"
+        else:
+            tool_label = "调用工具"
+            args_label = "传入参数"
+            result_label = "返回结果"
+        
         for log in tool_logs:
             merged_text = "\n".join([seg["text"] for seg in log["outputs"] if seg.get("text")])
             if not merged_text:
                 first_struct = next((seg["structured"] for seg in log["outputs"] if seg.get("structured") is not None), None)
                 merged_text = json.dumps(first_struct, ensure_ascii=False) if first_struct is not None else "<no content>"
             return_logs.append(
-                f"调用工具：{log.get('tool')}\n传入参数：{log.get('args')}\n返回结果：{merged_text}"
+                f"{tool_label}：{log.get('tool')}\n{args_label}：{log.get('args')}\n{result_label}：{merged_text}"
             )
 
         return str(resp), return_logs
@@ -495,7 +565,8 @@ def chat_with_llm(
     system_prompt: Optional[str] = None,
     use_rag: bool = True,
     deep_think: bool = False,
-    use_mcp: bool = True
+    use_mcp: bool = True,
+    language: str = 'zh'
 ) -> Union[str, Dict[str, Any]]:
     """
     统一的函数用于与大模型进行对话
@@ -545,23 +616,26 @@ def chat_with_llm(
         # 如果启用RAG且最后一条消息是用户消息，尝试获取相关医学知识
         if use_rag and chat_messages and chat_messages[-1]["role"] == "user":
             try:
-                # 如果 medical_rag 未初始化，尝试初始化
-                current_rag = get_medical_rag()
-                if current_rag is None:
-                    current_rag = init_medical_rag()
-                
                 user_question = chat_messages[-1]["content"]
-                rag_result = current_rag.answer_question(user_question)
+                # 通过 Flask RAG 服务查询（默认只返回检索内容，不调用大模型）
+                rag_result = query_rag_service(user_question, k=3, only_references=True)
                 rag_response = rag_result["answer"]
                 references = rag_result["references"]
                 print("\n-------------------------------RAG索引完毕--------------------------------\n")
+                
+                # 根据语言设置不同的前缀
+                if language == 'en':
+                    rag_prefix = "Relevant Medical Knowledge:"
+                else:
+                    rag_prefix = "相关医学知识："
+                
                 # 将RAG结果添加到系统提示中
                 if system_prompt:
-                    chat_messages[0]["content"] += f"\n\n相关医学知识：\n{rag_response}"
+                    chat_messages[0]["content"] += f"\n\n{rag_prefix}\n{rag_response}"
                 else:
                     chat_messages.insert(0, {
                         "role": "system",
-                        "content": f"相关医学知识：\n{rag_response}"
+                        "content": f"{rag_prefix}\n{rag_response}"
                     })
             except Exception as e:
                 print(f"RAG error: {str(e)}")
@@ -575,19 +649,26 @@ def chat_with_llm(
                 "http://127.0.0.1:9008/sse" # HowToCook
             ])
 
-            planner_result, tool_logs = run_planner_with_logging_sync(planner_agent, chat_messages[-1]["content"])
+            planner_result, tool_logs = run_planner_with_logging_sync(planner_agent, chat_messages[-1]["content"], language=language)
             # 保存MCP响应用于前端显示
             mcp_result = planner_result
             mcp_tool_logs = tool_logs
             if tool_logs:  # 只有真的调用了工具才插入
                 use_tool = True
                 print("tool_logs:",tool_logs)
+                
+                # 根据语言设置不同的前缀
+                if language == 'en':
+                    tool_prefix = "Tools have been successfully called. Tool call results:"
+                else:
+                    tool_prefix = "已成功调用工具，工具调用结果："
+                
                 if system_prompt:
-                    chat_messages[0]["content"] += f"\n\n以成功调用工具，工具调用结果：\n{tool_logs}"
+                    chat_messages[0]["content"] += f"\n\n{tool_prefix}\n{tool_logs}"
                 else:
                     chat_messages.insert(0, {
                         "role": "system",
-                        "content": f"以成功调用工具，工具调用结果：\n{tool_logs}"
+                        "content": f"{tool_prefix}\n{tool_logs}"
                     })
         print("CHAT_MESSAGES:",chat_messages)
         print("DEEP_THINK:",deep_think)
