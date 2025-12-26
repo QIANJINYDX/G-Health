@@ -51,8 +51,6 @@ def _banner(title: str, sub: str = "") -> None:
         print(f"┃ {sub}")
     print(f"┗{line}\n")
 
-_banner("参与构建的设备信息",f"device = {_DEVICE}")
-
 
 def clean_think(text: str) -> str:
     """移除思考过程标签内容，避免把"思考过程"返回给用户。
@@ -1064,6 +1062,8 @@ def init_medical_rag(
     """
     global medical_rag
     if medical_rag is None:
+        # 在初始化时打印设备信息
+        _banner("参与构建的设备信息", f"device = {_DEVICE}")
         medical_rag = MedicalRAG(
             data_dir=data_dir,
             persist_dir=persist_dir,

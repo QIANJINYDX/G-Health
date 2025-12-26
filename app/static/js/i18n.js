@@ -1,6 +1,6 @@
 // 国际化语言管理
 const i18n = {
-    currentLang: localStorage.getItem('language') || 'zh',
+    currentLang: localStorage.getItem('language') || 'en',
     
     translations: {
         zh: {

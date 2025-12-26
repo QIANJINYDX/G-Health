@@ -41,8 +41,10 @@ from datetime import datetime
 import os
 import requests
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-print("Rag_device:",device)
+# 设备信息将在实际使用RAG时打印，而不是在模块导入时
+def get_rag_device() -> str:
+    """获取RAG使用的设备信息"""
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 # RAG 服务配置
 RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://127.0.0.1:5005")
