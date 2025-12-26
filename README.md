@@ -1,8 +1,10 @@
-# JiShi：Multi-agent Medical Language Models for Health Examination Risk Assessment
-
+<h1>
+  <img src="app/static/images/logo.png" alt="JiShi logo" width="40" style="vertical-align:middle; margin-right:10px;" />
+  JiShi: Multi-agent Medical Language Models for Health Examination Risk Assessment
+</h1>
 ## Overview
 
-This project implements a comprehensive multi-agent medical system for health examination risk assessment. The system leverages large language models (Qwen3 32B and Qwen3 14B) trained on a curated corpus of 2.81 million medical dialogues to provide intelligent health examination report interpretation and disease risk assessment across 20 disease categories.
+This project delivers a comprehensive multi-agent medical system for health examination risk assessment. It automatically interprets health check-up reports and generates structured, patient-friendly insights, including key abnormal findings, likely clinical implications, follow-up recommendations, and personalized risk stratification across 20 disease categories.
 
 ## Key Features
 
@@ -30,18 +32,14 @@ This project implements a comprehensive multi-agent medical system for health ex
 - Personalized lifestyle and follow-up recommendations
 
 ### 🤖 Advanced AI Integration
-- **Qwen3 Models**: 32B and 14B parameter models fine-tuned for medical tasks
-- **Three-Stage Training Strategy**:
-  1. Supervised fine-tuning on 2.81M medical dialogues
-  2. Direct preference optimization with medical questions
-  3. Task-specific fine-tuning for health management
-- **PPMSA Factory**: Framework for generating report-centered dialogues
+We integrate Ollama for local LLM deployment and model invocation, providing reliable inference support for multi-agent report interpretation and risk assessment workflows.
 
 ### 🔬 Risk Stratification
 - Quantitative disease risk assessment across 20 categories
 - Evidence-based recommendations
 - Personalized health management suggestions
 - Closed-loop system from data perception to individualized management
+- SHAP-based interpretability analysis
 
 ## Installation
 
@@ -70,7 +68,7 @@ This project implements a comprehensive multi-agent medical system for health ex
 4 下载表格数据
 csv数据
 
-5 配置magic-pdf
+5 配置mineru
 modelscope download --model ppaanngggg/layoutreader --local_dir magic-pdf-models/layoutreader
 modelscope download --model OpenDataLab/PDF-Extract-Kit-1.0 --local_dir magic-pdf-models/PDF-Extract-Kit-1.0
 配置magic-pdf-models/magic-pdf.json目录下models-dir为PDF-Extract-Kit-1.0，layoutreader-model-dir为layoutreader
@@ -118,61 +116,7 @@ The main application provides several API endpoints:
 
 See the Swagger documentation at `/api/docs` for detailed API reference.
 
-## Project Structure
-
-```
-client/
-├── app/                    # Main Flask application
-│   ├── app.py             # Flask app factory
-│   ├── config/            # Configuration files
-│   ├── db/                # Database models and setup
-│   ├── modules/           # Application modules
-│   │   ├── auth/         # Authentication
-│   │   ├── chat/         # Chat interface
-│   │   └── files/        # File management
-│   └── util/              # Utility functions
-│       ├── agent_config.py    # Multi-agent configuration
-│       ├── clinical_analyst.py # Clinical language analysis
-│       └── detectron2/    # Object detection utilities
-├── risk_assessment/       # Risk assessment service
-│   ├── app.py            # Risk assessment Flask service
-│   ├── train_model.py    # Model training scripts
-│   └── requirements.txt   # Risk assessment dependencies
-├── MCP/                   # Model Context Protocol servers
-│   ├── MCP-Health/       # Healthcare MCP server
-│   ├── ollama-mcp/       # Ollama MCP client
-│   └── healthcare-mcp-public/ # Public healthcare MCP
-├── model/                 # Trained model files
-├── run.py                 # Main application entry point
-├── environment.yml        # Conda environment specification
-└── README.md             # This file
-```
-
 ## Training and Model Development
-
-## Disease Categories Supported
-
-The system provides risk assessment for 20 disease categories:
-
-1. Calorie Intake Assessment
-2. Diabetes
-3. Obesity
-4. Early Diabetes Detection
-5. Hair Loss
-6. Heart Disease
-7. Heart Failure
-8. Heart Risk
-9. Hepatitis
-10. Hypertension Risk
-11. Lung Cancer
-12. Maternal Health
-13. Physical Examination Diabetes
-14. Sleep Disorders
-15. Stroke Risk
-16. Chronic Kidney Disease
-17. Thyroid Cancer
-18. Brain Stroke
-19. And additional categories...
 
 ## Contributing
 
