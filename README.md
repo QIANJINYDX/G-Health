@@ -53,46 +53,74 @@ We integrate Ollama for local LLM deployment and model invocation, providing rel
 ### Setup
 
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/QIANJINYDX/JiShi.git
    cd JiShi
    ```
 
 2. **Install the JiShi conda environment**:
+
    ```bash
    conda create -n jishi python=3.11
    conda activate jishi
-   ``` 
-3 下载模型
+   ```
 
-4 下载表格数据
-csv数据
+3. **Download the risk assessment model**:
 
-5 配置mineru
-modelscope download --model ppaanngggg/layoutreader --local_dir magic-pdf-models/layoutreader
-modelscope download --model OpenDataLab/PDF-Extract-Kit-1.0 --local_dir magic-pdf-models/PDF-Extract-Kit-1.0
-配置magic-pdf-models/magic-pdf.json目录下models-dir为PDF-Extract-Kit-1.0，layoutreader-model-dir为layoutreader
-配置app/util/file_detection.py中的MINERU_TOOLS_CONFIG_JSON为绝对路径
+   ```bash
+   ```
+
+4. **Download the risk assessment configuration files**:
+
+   ```bash
+   ```
+
+5. **Configure MinerU**:
+
+   ```bash
+   ```
+
+6. **Install Ollama**:
+
+   ```bash
+   ```
+
 
 ## Usage
 
 ### Starting the Main Application
 
 1. Start Ollama
-   `ollama serve`
+
+```bash
+ollama serve
+```
 
 2. Start JiShi
-   `python run.py`
+
+```bash
+python run.py
+```
 
 3. Start the Risk Assessment module
-   `python risk_assessment/app.py`
 
-4. Start the RAG service (index/build module)
-   `python app/util/rag_service.py --mode serve`
+```bash
+python risk_assessment/app.py
+```
+
+4. Start the RAG service (build/index module)
+
+```bash
+python app/util/rag_service.py --mode serve
+```
 
 5. Start the MCP service modules
-   `cd MCP`
-   `python start_all_mcp.py`
+
+```bash
+cd MCP
+python start_all_mcp.py
+```
 
 
 ## Training and Model Development
