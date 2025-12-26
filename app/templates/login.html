@@ -266,8 +266,9 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    // 登录成功，跳转到聊天页面
-                    window.location.href = '/api/v1/chat';
+                    // 登录成功，跳转到聊天页面（使用当前域名，避免硬编码）
+                    const chatUrl = window.location.origin + '/api/v1/chat';
+                    window.location.href = chatUrl;
                 } else {
                     // 显示错误信息
                     document.getElementById('login-password-error').textContent = data.message;
