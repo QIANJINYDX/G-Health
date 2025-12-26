@@ -12,8 +12,16 @@ def initialize_route(app: Flask):
         @app.route('/')
         def index():
             if 'user_id' in session:
-                return redirect(url_for('chat.chat'))
-            return redirect(url_for('auth.login_page'))
+                # 使用 _external=True 生成绝对URL，确保在反向代理环境下也能正确工作
+                try:
+                    return redirect(url_for('chat.chat', _external=True))
+                except:
+                    # 如果无法生成外部URL，使用相对路径
+                    return redirect('/api/v1/chat')
+            try:
+                return redirect(url_for('auth.login_page', _external=True))
+            except:
+                return redirect('/api/v1/auth/login')
             
         app.register_blueprint(main_bp, url_prefix='/api/v1/main')
         app.register_blueprint(chat_bp, url_prefix='/api/v1/chat')

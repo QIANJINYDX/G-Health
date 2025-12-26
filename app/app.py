@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from app.config.config import get_config_by_name
 from app.initialize_functions import initialize_route, initialize_db, initialize_swagger
 import os
@@ -21,6 +21,15 @@ def create_app(config=None) -> Flask:
 
     # 设置session密钥
     app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')  # 使用环境变量或固定值
+    
+    # 配置 Flask 正确处理反向代理（用于生成正确的URL）
+    # 如果设置了 SERVER_NAME，Flask 会使用它来生成绝对URL
+    # 否则会从请求头中获取
+    app.config['PREFERRED_URL_SCHEME'] = os.environ.get('PREFERRED_URL_SCHEME', 'https')
+    
+    # 如果设置了 SERVER_NAME，使用它（生产环境建议设置）
+    if os.environ.get('SERVER_NAME'):
+        app.config['SERVER_NAME'] = os.environ.get('SERVER_NAME')
 
     # Initialize extensions
     initialize_db(app)

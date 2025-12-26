@@ -267,7 +267,10 @@
                 const data = await response.json();
                 if (response.ok) {
                     // 登录成功，跳转到聊天页面（使用当前域名，避免硬编码）
-                    const chatUrl = window.location.origin + '/api/v1/chat';
+                    // 确保使用正确的协议（http/https）和域名
+                    const origin = window.location.origin;
+                    const chatUrl = origin + '/api/v1/chat';
+                    console.log('Redirecting to:', chatUrl); // 调试信息
                     window.location.href = chatUrl;
                 } else {
                     // 显示错误信息
