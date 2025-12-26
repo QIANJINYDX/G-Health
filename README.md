@@ -78,43 +78,22 @@ modelscope download --model OpenDataLab/PDF-Extract-Kit-1.0 --local_dir magic-pd
 
 ### Starting the Main Application
 
-1. **Start the risk assessment service** (in a separate terminal):
-   ```bash
-   cd risk_assessment
-   python app.py
-   ```
-   This starts the risk assessment service on port 5002.
+1. Start Ollama
+   `ollama serve`
 
-2. **Start the main Flask application**:
-   ```bash
-   python run.py
-   ```
-   The application will be available at `http://localhost:52315` (development) or `http://0.0.0.0:52315` (production).
+2. Start JiShi
+   `python run.py`
 
-### Starting MCP Health Server (Optional)
+3. Start the Risk Assessment module
+   `python risk_assessment/app.py`
 
-For advanced medical analysis capabilities:
+4. Start the RAG service (index/build module)
+   `python app/util/rag_service.py --mode serve`
 
-```bash
-cd MCP/MCP-Health
-python server.py
-```
+5. Start the MCP service modules
+   `cd MCP`
+   `python start_all_mcp.py`
 
-Or using SSE version:
-```bash
-python server_sse.py --transport sse --port 8088
-```
-
-### API Endpoints
-
-The main application provides several API endpoints:
-
-- **Health Examination Report Upload**: Upload and analyze health examination reports
-- **Risk Assessment**: Get disease risk assessments based on user dialogues and reports
-- **Chat Interface**: Multi-turn conversations with medical AI agents
-- **File Management**: Upload, store, and retrieve medical reports
-
-See the Swagger documentation at `/api/docs` for detailed API reference.
 
 ## Training and Model Development
 
