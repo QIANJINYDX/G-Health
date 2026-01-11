@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,10 +9,12 @@
     <link rel="icon" type="image/png" href="/static/images/icon.png">
     <link href="/static/css/bootstrap.min.css" rel="stylesheet">
     <script src="/static/js/i18n.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         body {
             background-color: #f8f9fa;
         }
+
         .sidebar {
             width: 260px;
             min-width: 220px;
@@ -28,6 +31,7 @@
             align-items: center;
             padding-top: 40px;
         }
+
         .sidebar .profile-avatar {
             width: 90px;
             height: 90px;
@@ -41,16 +45,19 @@
             font-weight: bold;
             margin-bottom: 18px;
         }
+
         .sidebar .user-name {
             font-size: 1.3rem;
             font-weight: 600;
             color: #333;
             margin-bottom: 8px;
         }
+
         .sidebar .user-info-list {
             width: 100%;
             padding: 0 18px;
         }
+
         .sidebar .user-info-list .info-item {
             display: flex;
             justify-content: space-between;
@@ -59,31 +66,37 @@
             border-bottom: 1px solid #f2f2f2;
             font-size: 0.98rem;
         }
+
         .sidebar .user-info-list .info-item:last-child {
             border-bottom: none;
         }
+
         .sidebar .btn-logout {
             margin-top: 30px;
             width: 80%;
         }
+
         .main-content {
             margin-left: 260px;
             padding: 40px 24px 24px 24px;
             min-height: 100vh;
             background: #f8f9fa;
         }
+
         .tab-content {
             background: #fff;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
             padding: 32px 24px;
             margin-top: 0;
         }
+
         .nav-tabs .nav-link.active {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #fff !important;
             border: none;
         }
+
         .nav-tabs .nav-link {
             color: #555;
             font-weight: 500;
@@ -92,26 +105,30 @@
             margin-right: 8px;
             background: #f2f2f2;
         }
+
         .file-list {
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
+
         .file-item {
             display: flex;
             align-items: center;
             background: #f8f9fa;
             border-radius: 8px;
             padding: 12px 18px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
             gap: 16px;
             transition: all 0.2s ease;
         }
+
         .file-item:hover {
             background: #e9ecef;
             transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
+
         .file-icon {
             width: 36px;
             height: 36px;
@@ -122,10 +139,12 @@
             background: #e3e6f3;
             border-radius: 8px;
         }
+
         .file-info {
             flex: 1;
             min-width: 0;
         }
+
         .file-title {
             font-weight: 500;
             color: #333;
@@ -133,14 +152,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .file-meta {
             font-size: 0.92rem;
             color: #888;
         }
+
         .file-actions {
             display: flex;
             gap: 8px;
         }
+
         .file-action-btn {
             padding: 4px 8px;
             font-size: 0.8rem;
@@ -151,45 +173,59 @@
             border: 1px solid #ddd;
             transition: all 0.2s ease;
         }
+
         .file-action-btn:hover {
             background: #f8f9fa;
             color: #333;
             text-decoration: none;
         }
+
         .file-action-btn.download {
             color: #0d6efd;
             border-color: #0d6efd;
         }
+
         .file-action-btn.download:hover {
             background: #0d6efd;
             color: #fff;
         }
+
         .file-action-btn.delete {
             color: #dc3545;
             border-color: #dc3545;
         }
+
         .file-action-btn.delete:hover {
             background: #dc3545;
             color: #fff;
         }
+
         .loading {
             text-align: center;
             padding: 40px;
             color: #666;
         }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
             color: #666;
         }
+
         .empty-state .icon {
             font-size: 3rem;
             margin-bottom: 16px;
             opacity: 0.5;
         }
+
         @media (max-width: 900px) {
-            .sidebar { display: none; }
-            .main-content { margin-left: 0; }
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
         }
 
         .lang-switcher {
@@ -222,6 +258,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="lang-switcher">
         <button id="lang-zh" onclick="i18n.switchLanguage('zh')">中文</button>
@@ -244,16 +281,20 @@
                 <span id="last-login" data-i18n="loading">加载中...</span>
             </div>
         </div>
-        <a href="/api/v1/chat" class="btn btn-primary btn-back-chat" style="width: 80%;margin-top: 10px;" data-i18n="backToChatProfile">返回聊天</a>
+        <a href="/api/v1/chat" class="btn btn-primary btn-back-chat" style="width: 80%;margin-top: 10px;"
+            data-i18n="backToChatProfile">返回聊天</a>
         <a href="/api/v1/auth/logout" class="btn btn-outline-danger btn-logout" data-i18n="logout">退出登录</a>
     </div>
     <div class="main-content">
         <ul class="nav nav-tabs" id="profileTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="true" data-i18n="usageStats">使用统计</button>
+                <button class="nav-link active" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats"
+                    type="button" role="tab" aria-controls="stats" aria-selected="true"
+                    data-i18n="usageStats">使用统计</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="false" data-i18n="files">文件</button>
+                <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button"
+                    role="tab" aria-controls="files" aria-selected="false" data-i18n="files">文件</button>
             </li>
         </ul>
         <div class="tab-content" id="profileTabContent">
@@ -284,6 +325,46 @@
                         </div>
                     </div>
                 </div>
+                <!-- 消息历史图表 -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card"
+                            style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h5 class="mb-3" data-i18n="messageHistoryChart">消息历史</h5>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="messageHistoryChart"></canvas>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-end">
+                                <select id="messageChartDaysSelect" class="form-select form-select-sm"
+                                    style="width: auto;">
+                                    <option value="7">最近7天</option>
+                                    <option value="30" selected>最近30天</option>
+                                    <option value="90">最近90天</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 风险评估历史图表 -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card"
+                            style="background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h5 class="mb-3" data-i18n="riskAssessmentHistoryChart">风险评估历史</h5>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="riskAssessmentHistoryChart"></canvas>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-end">
+                                <select id="riskChartDaysSelect" class="form-select form-select-sm"
+                                    style="width: auto;">
+                                    <option value="7">最近7天</option>
+                                    <option value="30" selected>最近30天</option>
+                                    <option value="90">最近90天</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="tab-pane fade" id="files" role="tabpanel" aria-labelledby="files-tab">
                 <div class="file-list" id="file-list">
@@ -303,22 +384,49 @@
         async function loadUserProfile() {
             try {
                 const response = await fetch('/api/v1/auth/user-info');
-                if (!response.ok) throw new Error('获取用户信息失败');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || '获取用户信息失败');
+                }
                 const userData = await response.json();
+                console.log('User data received:', userData);
+
+                if (!userData || !userData.username) {
+                    console.error('Invalid user data:', userData);
+                    document.getElementById('username-display').textContent = '未知用户';
+                    return;
+                }
+
                 document.getElementById('user-name').textContent = userData.username;
                 document.getElementById('username-display').textContent = userData.username;
                 document.getElementById('user-avatar').textContent = userData.username.charAt(0).toUpperCase();
+
+                // 移除 data-i18n 属性，防止 i18n.updatePage() 覆盖用户数据
+                document.getElementById('username-display').removeAttribute('data-i18n');
+                document.getElementById('user-name').removeAttribute('data-i18n');
+                document.getElementById('user-avatar').removeAttribute('data-i18n');
+
                 if (userData.created_at) {
                     document.getElementById('register-time').textContent = new Date(userData.created_at).toLocaleString('zh-CN');
+                } else {
+                    document.getElementById('register-time').textContent = '未知';
                 }
+                document.getElementById('register-time').removeAttribute('data-i18n');
+
                 if (userData.last_login) {
                     document.getElementById('last-login').textContent = new Date(userData.last_login).toLocaleString('zh-CN');
+                } else {
+                    document.getElementById('last-login').textContent = '从未登录';
                 }
+                document.getElementById('last-login').removeAttribute('data-i18n');
             } catch (error) {
                 console.error('Error loading user profile:', error);
+                document.getElementById('username-display').textContent = '加载失败';
+                document.getElementById('register-time').textContent = '加载失败';
+                document.getElementById('last-login').textContent = '加载失败';
             }
         }
-        
+
         // 加载统计
         async function loadUserStats() {
             try {
@@ -334,7 +442,214 @@
                 console.error('Error loading user stats:', error);
             }
         }
-        
+
+        // 图表实例
+        let messageHistoryChart = null;
+        let riskAssessmentHistoryChart = null;
+
+        // 获取本地化的日期格式
+        function formatDateForChart(dateString, lang) {
+            const date = new Date(dateString);
+            if (lang === 'zh') {
+                return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            } else {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        }
+
+        // 加载消息历史图表
+        async function loadMessageHistoryChart(days = 30) {
+            try {
+                const response = await fetch(`/api/v1/auth/message-stats-by-date?days=${days}`);
+                if (!response.ok) throw new Error('获取图表数据失败');
+
+                const data = await response.json();
+                const lang = i18n.currentLang;
+
+                // 准备图表数据
+                const labels = data.map(item => formatDateForChart(item.date, lang));
+                const counts = data.map(item => item.count);
+
+                // 获取canvas元素
+                const ctx = document.getElementById('messageHistoryChart').getContext('2d');
+
+                // 如果图表已存在，先销毁
+                if (messageHistoryChart) {
+                    messageHistoryChart.destroy();
+                }
+
+                // 创建新图表
+                messageHistoryChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: lang === 'zh' ? '消息数' : 'Messages',
+                            data: counts,
+                            borderColor: 'rgb(13, 110, 253)',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(13, 110, 253)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    precision: 0
+                                },
+                                title: {
+                                    display: true,
+                                    text: lang === 'zh' ? '消息数' : 'Messages'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: lang === 'zh' ? '日期' : 'Date'
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading message history chart:', error);
+            }
+        }
+
+        // 加载风险评估历史图表
+        async function loadRiskAssessmentHistoryChart(days = 30) {
+            try {
+                const response = await fetch(`/api/v1/auth/risk-assessment-stats-by-date?days=${days}`);
+                if (!response.ok) throw new Error('获取图表数据失败');
+
+                const data = await response.json();
+                const lang = i18n.currentLang;
+
+                // 准备图表数据
+                const labels = data.map(item => formatDateForChart(item.date, lang));
+                const counts = data.map(item => item.count);
+
+                // 获取canvas元素
+                const ctx = document.getElementById('riskAssessmentHistoryChart').getContext('2d');
+
+                // 如果图表已存在，先销毁
+                if (riskAssessmentHistoryChart) {
+                    riskAssessmentHistoryChart.destroy();
+                }
+
+                // 创建新图表
+                riskAssessmentHistoryChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: lang === 'zh' ? '风险评估数' : 'Risk Assessments',
+                            data: counts,
+                            borderColor: 'rgb(220, 53, 69)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgb(220, 53, 69)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1,
+                                    precision: 0
+                                },
+                                title: {
+                                    display: true,
+                                    text: lang === 'zh' ? '风险评估数' : 'Risk Assessments'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: lang === 'zh' ? '日期' : 'Date'
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading risk assessment history chart:', error);
+            }
+        }
+
+        // 更新图表语言
+        function updateChartsLanguage() {
+            const messageDays = parseInt(document.getElementById('messageChartDaysSelect').value);
+            const riskDays = parseInt(document.getElementById('riskChartDaysSelect').value);
+
+            // 更新选择器选项文本
+            const lang = i18n.currentLang;
+            const messageSelect = document.getElementById('messageChartDaysSelect');
+            const riskSelect = document.getElementById('riskChartDaysSelect');
+
+            messageSelect.options[0].text = i18n.t('last7Days');
+            messageSelect.options[1].text = i18n.t('last30Days');
+            messageSelect.options[2].text = i18n.t('last90Days');
+
+            riskSelect.options[0].text = i18n.t('last7Days');
+            riskSelect.options[1].text = i18n.t('last30Days');
+            riskSelect.options[2].text = i18n.t('last90Days');
+
+            // 重新加载图表
+            loadMessageHistoryChart(messageDays);
+            loadRiskAssessmentHistoryChart(riskDays);
+        }
+
         // 获取文件图标
         function getFileIcon(type) {
             if (type === 'pdf') return '📕';
@@ -345,22 +660,22 @@
             if (type === 'zip' || type === 'rar' || type === '7z') return '📦';
             return '📁';
         }
-        
+
         // 格式化日期
         function formatDate(dateString) {
             const date = new Date(dateString);
             return date.toLocaleDateString('zh-CN');
         }
-        
+
         // 加载文件列表
         async function loadFileList() {
             try {
                 const response = await fetch('/api/v1/files/list');
                 if (!response.ok) throw new Error('获取文件列表失败');
-                
+
                 const data = await response.json();
                 const fileList = document.getElementById('file-list');
-                
+
                 if (data.files.length === 0) {
                     fileList.innerHTML = `
                         <div class="empty-state">
@@ -372,16 +687,17 @@
                     i18n.updatePage();
                     return;
                 }
-                
+
                 fileList.innerHTML = '';
                 data.files.forEach(file => {
                     const item = document.createElement('div');
                     item.className = 'file-item';
+                    const downloadCountText = i18n.t('downloadCount', { count: file.download_count || 0 });
                     item.innerHTML = `
                         <div class="file-icon">${getFileIcon(file.file_type)}</div>
                         <div class="file-info">
                             <div class="file-title" title="${file.filename}">${file.filename}</div>
-                            <div class="file-meta">${formatDate(file.created_at)} · ${file.file_size} · <span data-i18n="downloadCount">下载 ${file.download_count} 次</span></div>
+                            <div class="file-meta">${formatDate(file.created_at)} · ${file.file_size} · ${downloadCountText}</div>
                         </div>
                         <div class="file-actions">
                             <a href="/api/v1/files/${file.id}/download" class="file-action-btn download" data-i18n="download">下载</a>
@@ -391,7 +707,7 @@
                     fileList.appendChild(item);
                 });
                 i18n.updatePage();
-                
+
             } catch (error) {
                 console.error('Error loading file list:', error);
                 document.getElementById('file-list').innerHTML = `
@@ -404,7 +720,7 @@
                 i18n.updatePage();
             }
         }
-        
+
         // 更新语言切换按钮状态
         function updateLangButtons() {
             const currentLang = i18n.currentLang;
@@ -414,18 +730,20 @@
 
         // 监听语言切换
         const originalSwitchLanguage = i18n.switchLanguage;
-        i18n.switchLanguage = function(lang) {
+        i18n.switchLanguage = function (lang) {
             originalSwitchLanguage.call(this, lang);
             updateLangButtons();
+            // 更新图表语言
+            updateChartsLanguage();
         };
-        
+
         // 删除文件
         async function deleteFile(fileId, filename) {
             const confirmMsg = i18n.t('deleteFileConfirm', { filename: filename });
             if (!confirm(confirmMsg)) {
                 return;
             }
-            
+
             try {
                 const response = await fetch(`/api/v1/files/${fileId}`, {
                     method: 'DELETE',
@@ -433,7 +751,7 @@
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 if (response.ok) {
                     // 重新加载文件列表
                     loadFileList();
@@ -446,16 +764,44 @@
                 alert(i18n.t('deleteFileError'));
             }
         }
-        
+
         // 页面加载完成后执行
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             updateLangButtons();
             loadUserProfile();
             loadUserStats();
             loadFileList();
-            
+
+            // 更新选择器选项文本
+            const lang = i18n.currentLang;
+            const messageSelect = document.getElementById('messageChartDaysSelect');
+            const riskSelect = document.getElementById('riskChartDaysSelect');
+
+            messageSelect.options[0].text = i18n.t('last7Days');
+            messageSelect.options[1].text = i18n.t('last30Days');
+            messageSelect.options[2].text = i18n.t('last90Days');
+
+            riskSelect.options[0].text = i18n.t('last7Days');
+            riskSelect.options[1].text = i18n.t('last30Days');
+            riskSelect.options[2].text = i18n.t('last90Days');
+
+            loadMessageHistoryChart(30); // 默认加载30天的数据
+            loadRiskAssessmentHistoryChart(30); // 默认加载30天的数据
+
+            // 监听消息图表天数选择器变化
+            document.getElementById('messageChartDaysSelect').addEventListener('change', function () {
+                const days = parseInt(this.value);
+                loadMessageHistoryChart(days);
+            });
+
+            // 监听风险评估图表天数选择器变化
+            document.getElementById('riskChartDaysSelect').addEventListener('change', function () {
+                const days = parseInt(this.value);
+                loadRiskAssessmentHistoryChart(days);
+            });
+
             // 监听标签页切换，重新加载文件列表
-            document.getElementById('files-tab').addEventListener('click', function() {
+            document.getElementById('files-tab').addEventListener('click', function () {
                 // 延迟加载，确保标签页已经切换
                 setTimeout(() => {
                     if (document.getElementById('files').classList.contains('show')) {
@@ -466,5 +812,7 @@
         });
     </script>
 </body>
-</html> 
-</html> 
+
+</html>
+
+</html>

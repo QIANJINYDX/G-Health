@@ -228,25 +228,17 @@ Format as follows:
 
 # 体检报告工作流触发判断器提示词
 TIJIANBAOGAO_PROMPT_ZH = """
-你是一个体检报告工作流触发判断器。请仅在用户输入中出现具体的体检指标名称和数值时返回 1，例如：
-- 血糖、血压（收缩压、舒张压）、心率、肝功能、ALT、AST、血脂、BMI 等
-- 明确的检测数值（如"血糖 6.5 mmol/L"）
-如果未出现任何具体的体检指标名称或数值，即使提到体检、健康建议、风险评估等，也返回 0。
-
-只返回数字 `1` 或 `0`，不需要解释理由。
-
-用户输入：{user_input}
+你是一个体检报告工作流触发判断器。你的核心任务是根据用户输入中是否包含具体的体检指标名称及其对应的数值来决定是否触发工作流。当且仅当用户输入中明确包含具体的体检指标名称和对应的数值时，判断为触发条件满足，返回数字 1。具体的体检指标包括但不限于：血糖、血压（收缩压、舒张压）、心率、肝功能（如ALT、AST）、血脂、BMI等。数值必须是明确的检测结果，例如 "血糖 6.5 mmol/L"。如果用户输入中未出现任何具体的体检指标名称或数值，即使提及体检、健康建议、风险评估等相关概念，也判断为触发条件不满足，返回数字 0。你的响应必须严格为数字 1 或 0，不允许包含任何解释或额外文本。用户输入将通过 {user_input} 提供。
 """
 
 TIJIANBAOGAO_PROMPT_EN = """
-You are a physical examination report workflow trigger judge. Please return 1 only when specific physical examination indicator names and values appear in the user input, for example:
-- Blood sugar, blood pressure (systolic pressure, diastolic pressure), heart rate, liver function, ALT, AST, blood lipids, BMI, etc.
-- Clear test values (such as "blood sugar 6.5 mmol/L")
-If no specific physical examination indicator names or values appear, even if physical examination, health recommendations, risk assessment, etc. are mentioned, return 0.
+You are a health check-up report workflow trigger classifier. Your core task is to decide whether to trigger the workflow based on whether the user input contains a specific health check-up indicator name and its corresponding numeric value. Only when the user input explicitly includes a specific indicator name and a corresponding numeric value should you determine that the trigger condition is satisfied and return the digit 1.
 
-Return only the number `1` or `0`, no explanation needed.
+Specific health check-up indicators include, but are not limited to: blood glucose, blood pressure (systolic and diastolic), heart rate, liver function (e.g., ALT, AST), blood lipids, BMI, etc. The value must be a clear test result, for example: “blood glucose 6.5 mmol/L”.
 
-User input: {user_input}
+If the user input does not contain any specific indicator name or numeric value, then even if it mentions concepts such as check-ups, health advice, or risk assessment, you should determine that the trigger condition is not satisfied and return the digit 0.
+
+Your response must be strictly 1 or 0 only, and must not include any explanation or additional text. The user input will be provided via {user_input}.
 """
 
 # 指标提取提示词
@@ -585,17 +577,17 @@ SUMMARIZE_TO_USER_PROMPT = SUMMARIZE_TO_USER_PROMPT_ZH
 def get_prompt(prompt_name: str, language: str = 'zh') -> str:
     """
     根据语言选择对应的提示词
-    
+
     Args:
         prompt_name: 提示词名称（不包含语言后缀）
         language: 语言代码，'zh' 或 'en'，默认为 'zh'
-    
+
     Returns:
         对应语言的提示词字符串
     """
     lang_suffix = '_EN' if language.lower() == 'en' else '_ZH'
     prompt_key = f"{prompt_name}{lang_suffix}"
-    
+
     # 提示词映射字典
     prompts = {
         'CLINICAL_LANGUAGE_ANALYST_PROMPT_ZH': CLINICAL_LANGUAGE_ANALYST_PROMPT_ZH,
@@ -623,5 +615,5 @@ def get_prompt(prompt_name: str, language: str = 'zh') -> str:
         'SUMMARIZE_TO_USER_PROMPT_ZH': SUMMARIZE_TO_USER_PROMPT_ZH,
         'SUMMARIZE_TO_USER_PROMPT_EN': SUMMARIZE_TO_USER_PROMPT_EN,
     }
-    
+
     return prompts.get(prompt_key, prompts.get(f"{prompt_name}_ZH", ""))

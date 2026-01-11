@@ -97,6 +97,12 @@ class ChatMessage(db.Model):
     display_mode = db.Column(db.String(50), default='default')  # 'default' | 'workflow'
     stages = db.Column(db.JSON, nullable=True)  # 工作流阶段列表：[ {id,title,content} ]
     
+    # 流式响应相关
+    is_streaming = db.Column(db.Boolean, default=False)  # 是否正在流式生成中
+    streaming_content = db.Column(db.Text, nullable=True)  # 流式生成的内容（用于断点续传）
+    streaming_think_content = db.Column(db.Text, nullable=True)  # 流式生成的思考内容
+    streaming_updated_at = db.Column(db.DateTime, nullable=True)  # 流式内容最后更新时间
+    
     # 关联文件
     files = db.relationship('UserFile', backref='message', lazy=True)
 

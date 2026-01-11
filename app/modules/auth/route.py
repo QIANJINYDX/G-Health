@@ -192,4 +192,76 @@ def get_user_stats():
     result = auth_controller.get_user_stats(session['user_id'])
     if result.get('success'):
         return jsonify(result.get('stats'))
+    return jsonify({'message': result.get('message')}), 404
+
+@auth_bp.route('/chat-stats-by-date', methods=['GET'])
+@login_required
+def get_chat_stats_by_date():
+    """获取按日期分组的对话统计
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: days
+        in: query
+        type: integer
+        description: 统计最近多少天的数据，默认30天
+    responses:
+      200:
+        description: 成功获取日期统计
+      401:
+        description: 未登录
+    """
+    days = request.args.get('days', 30, type=int)
+    result = auth_controller.get_chat_stats_by_date(session['user_id'], days)
+    if result.get('success'):
+        return jsonify(result.get('data'))
+    return jsonify({'message': result.get('message')}), 404
+
+@auth_bp.route('/message-stats-by-date', methods=['GET'])
+@login_required
+def get_message_stats_by_date():
+    """获取按日期分组的消息统计
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: days
+        in: query
+        type: integer
+        description: 统计最近多少天的数据，默认30天
+    responses:
+      200:
+        description: 成功获取消息日期统计
+      401:
+        description: 未登录
+    """
+    days = request.args.get('days', 30, type=int)
+    result = auth_controller.get_message_stats_by_date(session['user_id'], days)
+    if result.get('success'):
+        return jsonify(result.get('data'))
+    return jsonify({'message': result.get('message')}), 404
+
+@auth_bp.route('/risk-assessment-stats-by-date', methods=['GET'])
+@login_required
+def get_risk_assessment_stats_by_date():
+    """获取按日期分组的风险评估统计
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: days
+        in: query
+        type: integer
+        description: 统计最近多少天的数据，默认30天
+    responses:
+      200:
+        description: 成功获取风险评估日期统计
+      401:
+        description: 未登录
+    """
+    days = request.args.get('days', 30, type=int)
+    result = auth_controller.get_risk_assessment_stats_by_date(session['user_id'], days)
+    if result.get('success'):
+        return jsonify(result.get('data'))
     return jsonify({'message': result.get('message')}), 404 

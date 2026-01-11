@@ -202,9 +202,12 @@ def get_messages(session_id):
     
     message_list = []
     for m in messages:
+        # 如果消息还在流式生成中，使用streaming_content，否则使用content
+        content = m.streaming_content if getattr(m, 'is_streaming', False) and m.streaming_content else m.content
+        
         message_data = {
             'id': m.id,
-            'content': m.content,
+            'content': content,
             'role': 'user' if m.is_user else 'assistant',
             'message_type': m.message_type,
             'feedback_status': m.feedback_status,
@@ -216,7 +219,9 @@ def get_messages(session_id):
             'image_data': m.image_data,  # 图片数据
             'follow_up_questions': m.follow_up_questions,  # 引导问题
             'display_mode': getattr(m, 'display_mode', 'default'),
-            'stages': getattr(m, 'stages', None)
+            'stages': getattr(m, 'stages', None),
+            'is_streaming': getattr(m, 'is_streaming', False),  # 是否正在流式生成
+            'streaming_think_content': getattr(m, 'streaming_think_content', None) if getattr(m, 'is_streaming', False) else None  # 流式思考内容
         }
         
         # 获取与消息关联的文件
@@ -246,7 +251,132 @@ def get_messages(session_id):
     
     return jsonify(message_list)
 
+@chat_bp.route('/sessions/<int:session_id>/streaming-status', methods=['GET'])
+@login_required
+def get_streaming_status(session_id):
+    """检查会话是否有未完成的流式响应"""
+    streaming_message = chat_controller.get_streaming_message(session_id)
+    
+    if streaming_message:
+        # 检查是否超过10分钟（流式响应应该不会超过10分钟）
+        from datetime import datetime, timedelta
+        if streaming_message.streaming_updated_at:
+            elapsed = datetime.utcnow() - streaming_message.streaming_updated_at
+            if elapsed > timedelta(minutes=10):
+                # 超时，标记为完成
+                chat_controller.complete_streaming(streaming_message.id, streaming_message.streaming_content or streaming_message.content)
+                return jsonify({'has_streaming': False})
+        
+        return jsonify({
+            'has_streaming': True,
+            'message_id': streaming_message.id,
+            'content': streaming_message.streaming_content or streaming_message.content,
+            'think_content': streaming_message.streaming_think_content,
+            'updated_at': streaming_message.streaming_updated_at.isoformat() if streaming_message.streaming_updated_at else None
+        })
+    
+    return jsonify({'has_streaming': False})
 
+@chat_bp.route('/sessions/<int:session_id>/resume-streaming', methods=['GET'])
+@login_required
+def resume_streaming(session_id):
+    """继续接收未完成的流式响应（流式端点）"""
+    import time
+    app = current_app._get_current_object()
+    
+    def generate():
+        with app.app_context():
+            streaming_message = chat_controller.get_streaming_message(session_id)
+            
+            if not streaming_message:
+                yield f"data: {json.dumps({'type': 'error', 'message': '没有未完成的流式响应'})}\n\n"
+                return
+            
+            # 检查是否超过10分钟
+            from datetime import datetime, timedelta
+            if streaming_message.streaming_updated_at:
+                elapsed = datetime.utcnow() - streaming_message.streaming_updated_at
+                if elapsed > timedelta(minutes=10):
+                    chat_controller.complete_streaming(streaming_message.id, streaming_message.streaming_content or streaming_message.content)
+                    yield f"data: {json.dumps({'type': 'error', 'message': '流式响应已超时'})}\n\n"
+                    return
+            
+            # 获取已缓存的内容
+            cached_content = streaming_message.streaming_content or streaming_message.content or ""
+            cached_think_content = streaming_message.streaming_think_content or ""
+            
+            # 提取主要内容（去除思考内容标签）
+            main_content = cached_content
+            if main_content and '<think>' in main_content:
+                match = re.search(r'<think>.*?</think>(.*)', main_content, re.DOTALL)
+                if match:
+                    main_content = match.group(1)
+            
+            # 发送已缓存的内容（如果存在）- 只发送一次，让客户端知道当前状态
+            if cached_think_content:
+                yield f"data: {json.dumps({'type': 'thinking', 'content': cached_think_content, 'done': False, 'is_cached': True})}\n\n"
+            
+            if main_content:
+                # 发送已缓存内容的完整长度信息，让客户端知道从哪里继续
+                yield f"data: {json.dumps({'type': 'content', 'content': main_content, 'done': False, 'is_cached': True})}\n\n"
+            
+            # 轮询检查更新
+            last_content_length = len(main_content) if main_content else 0
+            check_count = 0
+            max_checks = 120  # 最多检查120次（10分钟，每5秒一次）
+            
+            while check_count < max_checks:
+                check_count += 1
+                time.sleep(0.5)  # 每0.5秒检查一次，实现更流畅的流式效果
+                
+                # 重新查询消息
+                streaming_message = chat_controller.get_streaming_message(session_id)
+                if not streaming_message:
+                    # 流式响应已完成
+                    yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+                    return
+                
+                # 检查内容是否更新
+                current_content = streaming_message.streaming_content or streaming_message.content or ""
+                if '<think>' in current_content:
+                    match = re.search(r'<think>.*?</think>(.*)', current_content, re.DOTALL)
+                    if match:
+                        current_content = match.group(1)
+                
+                current_think_content = streaming_message.streaming_think_content or ""
+                
+                # 如果内容长度增加，发送新增部分
+                if len(current_content) > last_content_length:
+                    new_content = current_content[last_content_length:]
+                    # 分段发送新增内容
+                    chunk_size = 50
+                    for i in range(0, len(new_content), chunk_size):
+                        chunk = new_content[i:i+chunk_size]
+                        yield f"data: {json.dumps({'type': 'content', 'content': chunk, 'done': False})}\n\n"
+                        time.sleep(0.05)
+                    last_content_length = len(current_content)
+                
+                # 如果思考内容更新
+                if current_think_content and current_think_content != cached_think_content:
+                    new_think = current_think_content[len(cached_think_content):] if cached_think_content else current_think_content
+                    if new_think:
+                        yield f"data: {json.dumps({'type': 'thinking', 'content': new_think, 'done': False})}\n\n"
+                        cached_think_content = current_think_content
+            
+            # 超时，标记为完成
+            if streaming_message:
+                chat_controller.complete_streaming(streaming_message.id, streaming_message.streaming_content or streaming_message.content)
+            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+    
+    def wrapped_generate():
+        yield from generate()
+    
+    return Response(wrapped_generate(), mimetype='text/event-stream', headers={
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+    })
 
 @chat_bp.route('/sessions/<int:session_id>/messages', methods=['POST'])
 @login_required
@@ -651,6 +781,7 @@ def send_message(session_id):
                     return
                 
                 # 使用流式对话函数
+                current_message_id = None  # 初始化流式消息ID
                 try:
                     # 发送RAG处理开始信号
                     if rag_enabled:
@@ -810,6 +941,17 @@ def send_message(session_id):
                             think_content_accumulated = ""  # 累积思考内容
                             think_content_sent = False  # 标记是否已发送思考内容
                             
+                            # 在流式响应开始前创建消息并标记为流式状态
+                            ai_message = chat_controller.add_message(
+                                session_id,
+                                "",  # 初始内容为空
+                                is_user=False,
+                                references=references,
+                                mcp_response=None,
+                                is_streaming=True
+                            )
+                            current_message_id = ai_message.id
+                            
                             for chunk in stream_response:
                                 # 先检查是否有思考内容
                                 if hasattr(chunk, 'message') and hasattr(chunk.message, 'thinking'):
@@ -829,6 +971,16 @@ def send_message(session_id):
                                     content = chunk.message.content
                                     if content:
                                         full_response += content
+                                        # 实时更新数据库中的流式内容
+                                        if current_message_id:
+                                            try:
+                                                chat_controller.update_streaming_content(
+                                                    current_message_id,
+                                                    full_response,
+                                                    think_content_accumulated if think_content_accumulated else None
+                                                )
+                                            except Exception as update_error:
+                                                print(f"更新流式内容失败: {str(update_error)}")
                                         yield f"data: {json.dumps({'type': 'content', 'content': content, 'done': False})}\n\n"
                         except Exception as stream_error:
                             print(f"Stream processing error: {str(stream_error)}")
@@ -885,15 +1037,30 @@ def send_message(session_id):
                         print(f"生成后续追问建议失败: {str(follow_up_error)}")
                         # 不中断流式传输，只记录错误
                     
-                    # 保存AI回复（包含思考内容、引导问题和MCP响应）
-                    ai_message = chat_controller.add_message(
-                        session_id, 
-                        message_content_to_save,  # 使用包含思考内容的完整消息
-                        is_user=False,
-                        references=references,
-                        mcp_response=mcp_response_to_save,
-                        follow_up_questions=follow_up_questions
-                    )
+                    # 完成流式响应，更新消息
+                    if current_message_id:
+                        # 更新已存在的流式消息
+                        chat_controller.complete_streaming(
+                            current_message_id,
+                            message_content_to_save,
+                            follow_up_questions
+                        )
+                        # 更新MCP响应和参考文献
+                        ai_message = chat_controller.get_message_by_id(current_message_id)
+                        if ai_message:
+                            ai_message.references = references
+                            ai_message.mcp_response = mcp_response_to_save
+                            db.session.commit()
+                    else:
+                        # 如果没有流式消息（非流式响应），创建新消息
+                        ai_message = chat_controller.add_message(
+                            session_id, 
+                            message_content_to_save,
+                            is_user=False,
+                            references=references,
+                            mcp_response=mcp_response_to_save,
+                            follow_up_questions=follow_up_questions
+                        )
                     
                     # 发送消息完成信号
                     yield f"data: {json.dumps({'type': 'message_complete', 'message_id': ai_message.id, 'full_response': full_response, 'rag_response': rag_response, 'references': references})}\n\n"
@@ -939,6 +1106,12 @@ def send_message(session_id):
                     yield f"data: {json.dumps({'type': 'complete'})}\n\n"
                     
                 except Exception as ai_error:
+                    # 如果出错，标记流式消息为完成（避免一直处于流式状态）
+                    if current_message_id:
+                        try:
+                            chat_controller.complete_streaming(current_message_id, None)
+                        except:
+                            pass
                     yield f"data: {json.dumps({'type': 'error', 'message': f'AI服务错误：{str(ai_error)}'})}\n\n"
                     
             except Exception as e:

@@ -1,6 +1,8 @@
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.db.models import User
+from app.db.models import User, ChatSession, ChatMessage, RiskAssessment
 from app.db.db import db
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 class AuthController:
     def login(self, username, password):
@@ -137,4 +139,190 @@ class AuthController:
                 }
             }
         except Exception as e:
-            return {'success': False, 'message': '获取统计信息失败'} 
+            return {'success': False, 'message': '获取统计信息失败'}
+
+    def get_chat_stats_by_date(self, user_id, days=30):
+        """获取按日期分组的对话统计
+        Args:
+            user_id: 用户ID
+            days: 统计最近多少天的数据，默认30天
+        Returns:
+            {
+                'success': True,
+                'data': [
+                    {'date': '2025-01-01', 'count': 5},
+                    {'date': '2025-01-02', 'count': 3},
+                    ...
+                ]
+            }
+        """
+        user = User.query.get(user_id)
+        if not user:
+            return {'success': False, 'message': '用户不存在'}
+        
+        try:
+            # 计算起始日期
+            end_date = datetime.utcnow().date()
+            start_date = end_date - timedelta(days=days-1)
+            
+            # 查询按日期分组的对话数
+            # 使用 func.date() 来提取日期部分
+            stats = db.session.query(
+                func.date(ChatSession.created_at).label('date'),
+                func.count(ChatSession.id).label('count')
+            ).filter(
+                ChatSession.user_id == user_id,
+                func.date(ChatSession.created_at) >= start_date,
+                func.date(ChatSession.created_at) <= end_date
+            ).group_by(
+                func.date(ChatSession.created_at)
+            ).order_by(
+                func.date(ChatSession.created_at)
+            ).all()
+            
+            # 转换为字典列表
+            result = [{'date': str(stat.date), 'count': stat.count} for stat in stats]
+            
+            # 填充缺失的日期（确保连续的时间序列）
+            date_list = []
+            current_date = start_date
+            while current_date <= end_date:
+                date_str = str(current_date)
+                # 查找该日期的统计数据
+                stat = next((s for s in result if s['date'] == date_str), None)
+                if stat:
+                    date_list.append(stat)
+                else:
+                    date_list.append({'date': date_str, 'count': 0})
+                current_date += timedelta(days=1)
+            
+            return {
+                'success': True,
+                'data': date_list
+            }
+        except Exception as e:
+            return {'success': False, 'message': f'获取日期统计失败: {str(e)}'}
+
+    def get_message_stats_by_date(self, user_id, days=30):
+        """获取按日期分组的消息统计
+        Args:
+            user_id: 用户ID
+            days: 统计最近多少天的数据，默认30天
+        Returns:
+            {
+                'success': True,
+                'data': [
+                    {'date': '2025-01-01', 'count': 15},
+                    {'date': '2025-01-02', 'count': 8},
+                    ...
+                ]
+            }
+        """
+        user = User.query.get(user_id)
+        if not user:
+            return {'success': False, 'message': '用户不存在'}
+        
+        try:
+            # 计算起始日期
+            end_date = datetime.utcnow().date()
+            start_date = end_date - timedelta(days=days-1)
+            
+            # 查询按日期分组的消息数（通过会话关联）
+            stats = db.session.query(
+                func.date(ChatMessage.created_at).label('date'),
+                func.count(ChatMessage.id).label('count')
+            ).join(
+                ChatSession, ChatMessage.session_id == ChatSession.id
+            ).filter(
+                ChatSession.user_id == user_id,
+                func.date(ChatMessage.created_at) >= start_date,
+                func.date(ChatMessage.created_at) <= end_date
+            ).group_by(
+                func.date(ChatMessage.created_at)
+            ).order_by(
+                func.date(ChatMessage.created_at)
+            ).all()
+            
+            # 转换为字典列表
+            result = [{'date': str(stat.date), 'count': stat.count} for stat in stats]
+            
+            # 填充缺失的日期（确保连续的时间序列）
+            date_list = []
+            current_date = start_date
+            while current_date <= end_date:
+                date_str = str(current_date)
+                # 查找该日期的统计数据
+                stat = next((s for s in result if s['date'] == date_str), None)
+                if stat:
+                    date_list.append(stat)
+                else:
+                    date_list.append({'date': date_str, 'count': 0})
+                current_date += timedelta(days=1)
+            
+            return {
+                'success': True,
+                'data': date_list
+            }
+        except Exception as e:
+            return {'success': False, 'message': f'获取消息统计失败: {str(e)}'}
+
+    def get_risk_assessment_stats_by_date(self, user_id, days=30):
+        """获取按日期分组的风险评估统计
+        Args:
+            user_id: 用户ID
+            days: 统计最近多少天的数据，默认30天
+        Returns:
+            {
+                'success': True,
+                'data': [
+                    {'date': '2025-01-01', 'count': 3},
+                    {'date': '2025-01-02', 'count': 2},
+                    ...
+                ]
+            }
+        """
+        user = User.query.get(user_id)
+        if not user:
+            return {'success': False, 'message': '用户不存在'}
+        
+        try:
+            # 计算起始日期
+            end_date = datetime.utcnow().date()
+            start_date = end_date - timedelta(days=days-1)
+            
+            # 查询按日期分组的风险评估数
+            stats = db.session.query(
+                func.date(RiskAssessment.created_at).label('date'),
+                func.count(RiskAssessment.id).label('count')
+            ).filter(
+                RiskAssessment.user_id == user_id,
+                func.date(RiskAssessment.created_at) >= start_date,
+                func.date(RiskAssessment.created_at) <= end_date
+            ).group_by(
+                func.date(RiskAssessment.created_at)
+            ).order_by(
+                func.date(RiskAssessment.created_at)
+            ).all()
+            
+            # 转换为字典列表
+            result = [{'date': str(stat.date), 'count': stat.count} for stat in stats]
+            
+            # 填充缺失的日期（确保连续的时间序列）
+            date_list = []
+            current_date = start_date
+            while current_date <= end_date:
+                date_str = str(current_date)
+                # 查找该日期的统计数据
+                stat = next((s for s in result if s['date'] == date_str), None)
+                if stat:
+                    date_list.append(stat)
+                else:
+                    date_list.append({'date': date_str, 'count': 0})
+                current_date += timedelta(days=1)
+            
+            return {
+                'success': True,
+                'data': date_list
+            }
+        except Exception as e:
+            return {'success': False, 'message': f'获取风险评估统计失败: {str(e)}'} 

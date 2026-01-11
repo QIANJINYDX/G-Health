@@ -75,6 +75,11 @@ const i18n = {
             'deleteFileFailed': '删除失败',
             'deleteFileError': '删除文件时发生错误',
             'downloadCount': '下载 {count} 次',
+            'messageHistoryChart': '消息历史',
+            'riskAssessmentHistoryChart': '风险评估历史',
+            'last7Days': '最近7天',
+            'last30Days': '最近30天',
+            'last90Days': '最近90天',
             
             // chat.html (主要文本)
             'chatTitle': '济世 - 智能问答',
@@ -262,6 +267,11 @@ const i18n = {
             'deleteFileFailed': 'Delete Failed',
             'deleteFileError': 'An error occurred while deleting the file',
             'downloadCount': 'Downloaded {count} times',
+            'messageHistoryChart': 'Message History',
+            'riskAssessmentHistoryChart': 'Risk Assessment History',
+            'last7Days': 'Last 7 Days',
+            'last30Days': 'Last 30 Days',
+            'last90Days': 'Last 90 Days',
             
             // chat.html (主要文本)
             'chatTitle': 'JiShi - Intelligent Q&A',
