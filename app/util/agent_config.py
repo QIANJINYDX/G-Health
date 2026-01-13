@@ -1,74 +1,124 @@
 # 提示词配置 - 支持中英文双语
 
 # 临床语言分析师提示词
-CLINICAL_LANGUAGE_ANALYST_PROMPT_ZH = """你是一位专业的临床语言分析师，负责分析用户与医生之间的对话内容，判断是否需要调用以下健康风险评估模型中的一个：
-(
-0: "热量摄入,卡路里测量,卡路里计算",
-1: "糖尿病",
-2: "肥胖",
-3: "糖尿病（早期）",
-4: "脱发",
-5: "心脏病",
-6: "心力衰竭",
-7: "心脏风险",
-8: "肝炎",
-9: "高血压风险",
-10: "肺癌",
-11: "孕产妇健康",
-12: "体检糖尿病",
-13: "睡眠障碍",
-14: "中风风险",
-15: "慢性肾病",
-16: "甲状腺癌",
-17: "脑卒中"
-)
+CLINICAL_LANGUAGE_ANALYST_PROMPT_ZH = """你是一位专业的临床语言分析师，负责分析用户与医生之间的对话内容，并判断是否需要调用以下健康风险评估模型之一（返回其编号）：
 
-你的任务是从中选出最相关的一个标签编号，作为模型调用依据。
+模型标签列表（编号 → 名称）：
+0: 糖尿病（通用）
+1: 糖尿病（早期）
+2: 糖尿病（体检）
+3: 肥胖
+4: 心脏病
+5: 心力衰竭
+6: 高血压风险
+7: 肺癌
+8: 孕产妇健康
+9: 睡眠障碍
+10: 中风风险
+11: 慢性肾病
+12: 甲状腺癌
+13: 脑卒中
+14: 热量摄入 / 卡路里测量 / 卡路里计算
+15: 心脏风险
 
-- 如果对话中明显涉及某一类疾病风险（如相关症状、关键词、健康行为、检查结果等），请返回最相关的一个标签编号（例如：1、5、10）。
-- 对于糖尿病，如果仅是早期判断是否有糖尿病，请返回3，其余糖尿病请返回1。
-- 如果用户想要进行热量评估，请返回0。
-- 如果对话与上述任何风险模型无关，请返回 -1。
+你的任务：从上述列表中选出最相关的一个标签编号，作为模型调用依据。
 
-返回格式要求：只返回一个数字，例如0、1、2、3、4、5、6、7、8、9、10、11、12、13、14、15 或 -1，不加任何解释说明。
+判别规则：
+若对话明显涉及某一类疾病或风险（包括但不限于：相关症状、诊断/既往史、检查或体检结果、风险因素、健康行为、就医/用药线索等），返回最相关的一个编号。
+糖尿病子类型规则：
+
+若对话中包含“体检/体检报告/指标解读”等语境，并出现血糖、糖化血红蛋白、尿糖等体检相关信息或解读需求 → 返回 2（糖尿病-体检）；
+
+若对话主要是“早期识别/早筛/是否糖尿病前期/空腹血糖偏高但未确诊”等早期诊断与筛查诉求 → 返回 1（糖尿病-早期）；
+
+其他无法明确区分（仅泛泛讨论糖尿病、已确诊但不强调体检或早期筛查）→ 返回 0（糖尿病-通用）。
+
+热量/卡路里相关需求：只要对话目标是热量评估、卡路里计算、饮食能量摄入估算等 → 返回 14。
+
+中风风险（10） vs 脑卒中（13）区分建议：
+
+若对话强调“已发生/疑似正在发生的卒中事件或明确卒中后遗症”（如突发偏瘫、言语不清、口角歪斜、卒中后康复等）→ 返回 13（脑卒中）；
+
+若主要是“风险评估/预防/危险因素管理”（如高血压、房颤、吸烟、血脂异常等导致的卒中风险）→ 返回 10（中风风险）。
+
+心脏病（4） vs 心力衰竭（5） vs 心脏风险（15）区分建议：
+
+明确心衰相关（喘憋、下肢水肿、夜间阵发性呼吸困难、射血分数降低/心衰诊断等）→ 5；
+
+明确心脏病症状/诊断（胸痛、冠心病、心绞痛、心肌缺血等）→ 4；
+
+若对话主要是“心血管总体风险/ASCVD风险/未来心脏事件概率评估”→ 15。
+
+若对话同时涉及多个标签：返回最核心、最直接、信息最充分的一个；优先级可按“明确诊断/急性问题 > 具体症状与检查结果 > 风险评估/生活方式咨询”。
+
+若对话与上述任何风险模型均无关：返回 -1。
+
+输出要求（必须严格遵守）
+
+只返回一个数字：0、1、2、3、4、5、6、7、8、9、10、11、12、13、14、15 或 -1
+
+不允许输出任何解释、文字或标点
 
 现在请分析以下对话内容，并判断最相关的风险模型编号（或返回 -1）：
 对话内容：{dialogue}
 """
 
-CLINICAL_LANGUAGE_ANALYST_PROMPT_EN = """You are a professional clinical language analyst responsible for analyzing dialogue content between users and doctors to determine whether to call one of the following health risk assessment models:
-(
-0: "Calorie intake, calorie measurement, calorie calculation",
-1: "Diabetes",
-2: "Obesity",
-3: "Diabetes (Early)",
-4: "Hair Loss",
-5: "Heart Disease",
-6: "Heart Failure",
-7: "Heart Risk",
-8: "Hepatitis",
-9: "Hypertension Risk",
-10: "Lung Cancer",
-11: "Maternal Health",
-12: "Physical Examination Diabetes",
-13: "Sleep Disorders",
-14: "Stroke Risk",
-15: "Chronic Kidney Disease",
-16: "Thyroid Cancer",
-17: "Stroke"
-)
+CLINICAL_LANGUAGE_ANALYST_PROMPT_EN = """You are a professional clinical language analyst responsible for analyzing the dialogue between a user and a doctor and determining whether it is necessary to invoke one of the following health risk assessment models (return its ID):
 
-Your task is to select the most relevant label number from the above as the basis for model invocation.
+Model label list (ID → Name):
+0: Diabetes (General)
+1: Diabetes (Early-stage)
+2: Diabetes (Health Check-up)
+3: Obesity
+4: Heart Disease
+5: Heart Failure
+6: Hypertension Risk
+7: Lung Cancer
+8: Maternal Health
+9: Sleep Disorder
+10: Stroke Risk
+11: Chronic Kidney Disease
+12: Thyroid Cancer
+13: Cerebrovascular Accident (Stroke)
+14: Calorie Intake / Calorie Measurement / Calorie Calculation
+15: Cardiovascular Risk
 
-- If the dialogue clearly involves a certain type of disease risk (such as related symptoms, keywords, health behaviors, examination results, etc.), please return the most relevant label number (e.g., 1, 5, 10).
-- For diabetes, if it is only an early judgment of whether there is diabetes, return 3; otherwise, return 1 for diabetes.
-- If the user wants to perform a calorie assessment, return 0.
-- If the dialogue is unrelated to any of the above risk models, return -1.
+Your task: Select the single most relevant label ID from the list above as the basis for model invocation.
 
-Return format requirement: Return only a number, such as 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, or -1, without any explanation.
+## Decision Rules
 
-Now please analyze the following dialogue content and determine the most relevant risk model number (or return -1):
-Dialogue content: {dialogue}
+1. If the dialogue clearly involves a disease or risk category (including but not limited to: related symptoms, diagnosis/past medical history, test or check-up results, risk factors, health behaviors, care-seeking/medication cues, etc.), return the single most relevant ID.
+
+2. Diabetes subtype rules:
+
+* If the dialogue includes a “health check-up / check-up report / lab indicator interpretation” context and mentions or requests interpretation of check-up–related information such as blood glucose, HbA1c, urine glucose, etc. → return 2 (Diabetes – Health Check-up).
+* If the dialogue primarily focuses on early identification/screening, e.g., “early detection / early screening / whether prediabetes / elevated fasting glucose but not yet diagnosed” → return 1 (Diabetes – Early-stage).
+* Otherwise, if the subtype cannot be clearly distinguished (general discussion of diabetes, or diagnosed diabetes without emphasis on check-up interpretation or early screening) → return 0 (Diabetes – General).
+
+3. Calorie-related requests: If the dialogue aims at calorie assessment, calorie calculation, or estimating dietary energy intake → return 14.
+
+4. Stroke Risk (10) vs Cerebrovascular Accident (13):
+
+* If the dialogue emphasizes an event that has occurred or is suspected to be occurring, or clear post-stroke sequelae (e.g., sudden unilateral weakness, slurred speech, facial droop, stroke rehabilitation) → return 13 (Cerebrovascular Accident / Stroke).
+* If it primarily concerns risk assessment/prevention/risk-factor management (e.g., hypertension, atrial fibrillation, smoking, dyslipidemia–related stroke risk) → return 10 (Stroke Risk).
+
+5. Heart Disease (4) vs Heart Failure (5) vs Cardiovascular Risk (15):
+
+* Clear heart failure–related context (dyspnea, lower-limb edema, paroxysmal nocturnal dyspnea, reduced ejection fraction, heart failure diagnosis, etc.) → return 5.
+* Clear heart disease symptoms/diagnosis (chest pain, coronary artery disease, angina, myocardial ischemia, etc.) → return 4.
+* If the dialogue mainly concerns overall cardiovascular risk (ASCVD risk / future cardiovascular event probability assessment) → return 15.
+
+6. If multiple labels are involved, return the one that is most central, most direct, and best supported by information. A suggested priority is: confirmed diagnosis/acute issue > specific symptoms & test results > risk assessment/lifestyle consultation.
+
+7. If the dialogue is unrelated to all models above, return -1.
+
+## Output Requirements (must be strictly followed)
+
+* Return only one number: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, or -1
+* Do not output any explanation, words, or punctuation.
+
+Now analyze the following dialogue and determine the most relevant model ID (or return -1):
+Dialogue: {dialogue}
 """
 
 # 护士提示词

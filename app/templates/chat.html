@@ -1773,6 +1773,634 @@
             let ragEnabled = false;
             let deepThinkEnabled = false;
             let selectedModel = 'qwen3:32b'; // 默认模型
+            let currentJobId = null;
+            let currentJobSeq = 0;
+            let currentJobSessionId = null;
+            let jobRenderState = null;
+            let isJobStreaming = false;
+
+            // 简单的全局提示函数，避免未定义报错；可替换为自定义UI
+            function showAlert(type, message) {
+                const text = message || '';
+                if (type === 'error') {
+                    console.error(text);
+                } else if (type === 'warning') {
+                    console.warn(text);
+                } else {
+                    console.log(text);
+                }
+                // 如需视觉提示，可在此接入 Toast/Modal
+            }
+
+            // 渲染思考/回答/阶段的基础函数，避免未定义报错
+            function renderThinking(content) {
+                const el = document.getElementById('ai-think');
+                if (!el) return;
+                const processed = preprocessText(content || '');
+                try {
+                    el.innerHTML = `
+                        <div class="alert alert-info mb-2" style="background-color:#fff;border:none;">
+                            <div style="color:#888;font-size:14px;border-left:4px solid #ddd;padding-left:12px;">
+                                ${marked.parse(processed)}
+                            </div>
+                        </div>
+                    `;
+                } catch (e) {
+                    el.textContent = processed;
+                }
+            }
+            function renderAIMessage(content) {
+                const el = document.getElementById('ai-main');
+                if (!el) return;
+                const processed = preprocessText(content || '');
+                try {
+                    el.innerHTML = `
+                        <div class="alert alert-primary mb-2" style="background-color:#fff;border:none;">
+                            ${marked.parse(processed)}
+                        </div>
+                    `;
+                } catch (e) {
+                    el.textContent = processed;
+                }
+            }
+            function renderWorkflowStage(text) {
+                const el = document.getElementById('ai-main');
+                if (!el) return;
+                const wrapped = (text || '').replace(/\n/g, '<br>');
+                el.innerHTML += `<div class="mt-2">${wrapped}</div>`;
+            }
+            // 获取当前流式 AI 容器（ai-think/ai-main 所在卡片）
+            function getStreamingAIContainer() {
+                const thinkHost = document.getElementById('ai-think');
+                if (thinkHost) return thinkHost.closest('.message-container');
+                const mainHost = document.getElementById('ai-main');
+                if (mainHost) return mainHost.closest('.message-container');
+                return null;
+            }
+
+            // 渲染/更新 RAG 参考资料（流式阶段即时展示）
+            function renderReferences(refs) {
+                const aiContainer = getStreamingAIContainer();
+                if (!aiContainer) return;
+
+                // 如果没有引用，移除已有展示
+                if (!refs || !refs.length) {
+                    const oldRef = aiContainer.querySelector('.streaming-rag');
+                    if (oldRef) oldRef.remove();
+                    return;
+                }
+
+                let refDiv = aiContainer.querySelector('.streaming-rag');
+                if (!refDiv) {
+                    refDiv = document.createElement('div');
+                    refDiv.className = 'alert alert-warning mb-2 streaming-rag';
+                    refDiv.style.backgroundColor = '#fff';
+                    refDiv.style.border = 'none';
+                    refDiv.style.display = 'block';
+                } else {
+                    refDiv.innerHTML = '';
+                }
+
+                const refHeader = document.createElement('div');
+                refHeader.style.display = 'flex';
+                refHeader.style.alignItems = 'center';
+                refHeader.style.gap = '8px';
+                refHeader.style.cursor = 'pointer';
+                refHeader.style.marginBottom = '8px';
+                refHeader.style.color = '#666';
+                refHeader.style.fontSize = '16px';
+                refHeader.style.fontWeight = 'bold';
+                refHeader.innerHTML = `
+                    <span style="color:inherit;font-size:14px;font-weight:normal;">${i18n.t('expandReferences')}</span>
+                    <span class="ref-toggle-icon" style="color:inherit;font-size:14px;">▼</span>
+                `;
+
+                const refContent = document.createElement('div');
+                refContent.style.display = 'none';
+                refs.forEach(ref => {
+                    const refItem = document.createElement('div');
+                    refItem.className = 'card mb-2';
+                    refItem.style.backgroundColor = '#fff';
+                    refItem.style.border = 'none';
+                    refItem.style.color = '#888';
+                    refItem.style.fontSize = '14px';
+                    refItem.style.borderLeft = '4px solid #ddd';
+                    refItem.style.paddingLeft = '12px';
+                    let cleanedContent = preprocessText(ref.content)
+                        .replace(/\\uf357|[\uf357]/g, ' ')
+                        .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                    refItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;">${cleanedContent}</div>`;
+                    refContent.appendChild(refItem);
+                });
+                refHeader.onclick = function () {
+                    const isHidden = refContent.style.display === 'none';
+                    refContent.style.display = isHidden ? 'block' : 'none';
+                    refHeader.querySelector('.ref-toggle-icon').textContent = isHidden ? '▲' : '▼';
+                };
+
+                refDiv.appendChild(refHeader);
+                refDiv.appendChild(refContent);
+
+                // 优先插入到思考区域之前，保持信息顺序
+                const thinkDiv = aiContainer.querySelector('#ai-think');
+                if (thinkDiv && thinkDiv.parentNode) {
+                    thinkDiv.parentNode.insertBefore(refDiv, thinkDiv);
+                } else {
+                    const body = aiContainer.querySelector('.card-body') || aiContainer;
+                    body.insertBefore(refDiv, body.firstChild);
+                }
+            }
+
+            // 渲染 MCP 工具调用日志（流式阶段）
+            function renderMcpResponse(data) {
+                const aiContainer = getStreamingAIContainer();
+                if (!aiContainer) return;
+                if ((!data.tool_logs || !data.tool_logs.length) && !data.result) return;
+
+                let mcpDiv = aiContainer.querySelector('.streaming-mcp');
+                if (!mcpDiv) {
+                    mcpDiv = document.createElement('div');
+                    mcpDiv.className = 'alert alert-info mb-2 streaming-mcp';
+                    mcpDiv.style.backgroundColor = '#e7f3ff';
+                    mcpDiv.style.border = '1px solid #b3d9ff';
+                    mcpDiv.style.display = 'block';
+                } else {
+                    mcpDiv.innerHTML = '';
+                }
+
+                const mcpHeader = document.createElement('div');
+                mcpHeader.style.display = 'flex';
+                mcpHeader.style.alignItems = 'center';
+                mcpHeader.style.gap = '8px';
+                mcpHeader.style.cursor = 'pointer';
+                mcpHeader.style.marginBottom = '8px';
+                mcpHeader.style.color = '#0066cc';
+                mcpHeader.style.fontSize = '16px';
+                mcpHeader.style.fontWeight = 'bold';
+                mcpHeader.innerHTML = `
+                    <span style="color:inherit;font-size:14px;font-weight:normal;">${i18n.t('expandToolCallDetails')}</span>
+                    <span class="mcp-toggle-icon" style="color:inherit;font-size:14px;">▼</span>
+                `;
+
+                const mcpContent = document.createElement('div');
+                mcpContent.style.display = 'none';
+
+                if (data.tool_logs && Array.isArray(data.tool_logs) && data.tool_logs.length > 0) {
+                    data.tool_logs.forEach((log) => {
+                        const logItem = document.createElement('div');
+                        logItem.className = 'card mb-2';
+                        logItem.style.backgroundColor = '#fff';
+                        logItem.style.border = '1px solid #b3d9ff';
+                        logItem.style.color = '#333';
+                        logItem.style.fontSize = '14px';
+                        logItem.style.borderLeft = '4px solid #0066cc';
+                        logItem.style.paddingLeft = '12px';
+                        let cleanedLog = preprocessText(log)
+                            .replace(/\\uf357|[\uf357]/g, ' ')
+                            .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                        if (i18n.currentLang === 'en') {
+                            cleanedLog = cleanedLog.replace(/调用工具：/g, i18n.t('callTool') + '：')
+                                .replace(/传入参数：/g, i18n.t('inputParameters') + '：')
+                                .replace(/返回结果：/g, i18n.t('returnResult') + '：')
+                                .replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                        } else {
+                            cleanedLog = cleanedLog.replace(/Call Tool：/g, i18n.t('callTool') + '：')
+                                .replace(/Input Parameters：/g, i18n.t('inputParameters') + '：')
+                                .replace(/Return Result：/g, i18n.t('returnResult') + '：')
+                                .replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                        }
+                        try {
+                            const renderedLog = marked.parse(cleanedLog);
+                            logItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;">${renderedLog}</div>`;
+                        } catch (e) {
+                            logItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><pre style="white-space: pre-wrap;word-wrap: break-word;margin:0;">${cleanedLog}</pre></div>`;
+                        }
+                        mcpContent.appendChild(logItem);
+                    });
+                }
+
+                if (data.result) {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'card mb-2';
+                    resultItem.style.backgroundColor = '#fff';
+                    resultItem.style.border = '1px solid #b3d9ff';
+                    resultItem.style.color = '#333';
+                    resultItem.style.fontSize = '14px';
+                    resultItem.style.borderLeft = '4px solid #0066cc';
+                    resultItem.style.paddingLeft = '12px';
+                    let cleanedResult = preprocessText(data.result)
+                        .replace(/\\uf357|[\uf357]/g, ' ')
+                        .replace(/\\u2003|[\u2003]/g, '&emsp;');
+                    if (i18n.currentLang === 'en') {
+                        cleanedResult = cleanedResult.replace(/\(已截断\)/g, '(' + i18n.t('truncated') + ')');
+                    } else {
+                        cleanedResult = cleanedResult.replace(/\(Truncated\)/g, '(' + i18n.t('truncated') + ')');
+                    }
+                    try {
+                        const renderedResult = marked.parse(cleanedResult);
+                        resultItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><strong>${i18n.t('toolCallResult')}：</strong><div style="margin-top:8px;">${renderedResult}</div></div>`;
+                    } catch (e) {
+                        resultItem.innerHTML = `<div class="card-body p-2" style="background-color:#fff;border:none;"><strong>${i18n.t('toolCallResult')}：</strong><div style="margin-top:8px;">${cleanedResult}</div></div>`;
+                    }
+                    mcpContent.appendChild(resultItem);
+                }
+
+                mcpHeader.onclick = function () {
+                    const isHidden = mcpContent.style.display === 'none';
+                    mcpContent.style.display = isHidden ? 'block' : 'none';
+                    mcpHeader.querySelector('.mcp-toggle-icon').textContent = isHidden ? '▲' : '▼';
+                };
+
+                mcpDiv.appendChild(mcpHeader);
+                mcpDiv.appendChild(mcpContent);
+
+                const thinkDiv = aiContainer.querySelector('#ai-think');
+                if (thinkDiv && thinkDiv.parentNode) {
+                    thinkDiv.parentNode.insertBefore(mcpDiv, thinkDiv);
+                } else {
+                    const body = aiContainer.querySelector('.card-body') || aiContainer;
+                    body.insertBefore(mcpDiv, body.firstChild);
+                }
+            }
+            function scrollToBottom() {
+                const chatMessages = document.getElementById('chat-messages');
+                if (!chatMessages) return;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function cleanupStreamingArtifacts() {
+                // 移除流式阶段的临时 RAG/工具调用卡片，避免最终消息重复
+                document.querySelectorAll('.streaming-mcp, .streaming-rag').forEach(el => el.remove());
+                const genericThink = document.getElementById('ai-think');
+                const genericMain = document.getElementById('ai-main');
+                const container = genericThink?.closest('.message-container') || genericMain?.closest('.message-container');
+                // 如果临时容器里已经挂了引导问题，保留它避免引导按钮被删
+                const hasFollowUps = container?.closest('.message-wrapper')?.querySelector('.follow-up-questions');
+                if (container && !container.dataset.messageId && !hasFollowUps) {
+                    container.remove();
+                }
+            }
+
+            function ensureAiContainers() {
+                let thinkDiv = document.getElementById('ai-think');
+                let mainDiv = document.getElementById('ai-main');
+                if (thinkDiv && mainDiv) return;
+                const aiMessageContainer = document.createElement('div');
+                aiMessageContainer.className = 'mb-3 message-container';
+                aiMessageContainer.innerHTML = `
+                    <div class="card bg-white" style="max-width: 100%; width: 100%;">
+                        <div class="card-body p-2">
+                            <div id="ai-think"></div>
+                            <div id="ai-main"></div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('chat-messages').appendChild(aiMessageContainer);
+
+                const loadingContainer = document.createElement('div');
+                loadingContainer.className = 'd-flex justify-content-start mb-3';
+                loadingContainer.id = 'ai-loading-container';
+                loadingContainer.innerHTML = `
+                    <div class="card bg-white" style="max-width: 100%; width: 100%;">
+                        <div class="card-body p-2">
+                            <div class="d-flex align-items-center">
+                                <div class="loading-dots me-2">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <span class="text-muted">${i18n.t('aiThinking')}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('chat-messages').appendChild(loadingContainer);
+            }
+
+            function persistJobState(done = false) {
+                if (done || !currentJobId) {
+                    localStorage.removeItem('currentJobState');
+                    return;
+                }
+                localStorage.setItem('currentJobState', JSON.stringify({
+                    jobId: currentJobId,
+                    sessionId: currentJobSessionId,
+                    seq: currentJobSeq
+                }));
+            }
+
+            async function streamJob(jobId, fromSeq = 0) {
+                if (isJobStreaming) return;
+                isJobStreaming = true;
+                ensureAiContainers();
+                if (!jobRenderState) {
+                    jobRenderState = {
+                        aiContent: '',
+                        thinkContent: '',
+                        references: null,
+                        ragResponse: null,
+                        mcpResponse: null,
+                        isWorkflow: false,
+                        workflowStageIndex: 0,
+                        currentMessageId: null,
+                        referencesRendered: false,
+                        mcpRendered: false
+                    };
+                }
+                let jobWatchdogTimer = null;
+                let jobCompleteFlag = false;
+                let lastJobEventTs = Date.now();
+                const touchJobWatchdog = (tag = 'evt') => {
+                    lastJobEventTs = Date.now();
+                    console.debug('[job] watchdog touch', tag);
+                };
+                const clearJobWatchdog = () => {
+                    if (jobWatchdogTimer) {
+                        clearInterval(jobWatchdogTimer);
+                        jobWatchdogTimer = null;
+                    }
+                };
+                let readerRef = null;
+                const fallbackToResume = () => {
+                    clearJobWatchdog();
+                    isJobStreaming = false;
+                    removeAiLoading();
+                    if (currentJobSessionId) {
+                        console.warn('job stream stalled, fallback to resume-streaming');
+                        checkAndResumeStreaming(currentJobSessionId);
+                    }
+                };
+                let seqRef = fromSeq;
+                const state = jobRenderState;
+
+                async function processJobEvent(data) {
+                    if (!data) return false;
+                    if (typeof data.seq === 'number') {
+                        seqRef = data.seq;
+                        currentJobSeq = data.seq;
+                        persistJobState();
+                    }
+                    if (data.type === 'report_workflow_start' || data.type === 'stage') {
+                        state.isWorkflow = true;
+                    }
+                    if (data.type === 'thinking') {
+                        state.thinkContent += data.content || '';
+                        renderThinking(state.thinkContent);
+                    } else if (data.type === 'content') {
+                        const contentPiece = data.content || '';
+                        state.aiContent += contentPiece;
+                        renderAIMessage(state.aiContent);
+                    } else if (data.type === 'rag_content') {
+                        state.aiContent += data.content || '';
+                        renderAIMessage(state.aiContent);
+                    } else if (data.type === 'references') {
+                        state.references = data.references || [];
+                        renderReferences(state.references);
+                        state.referencesRendered = !!state.references?.length;
+                    } else if (data.type === 'rag_references') {
+                        state.references = data.references || [];
+                        renderReferences(state.references);
+                        state.referencesRendered = !!state.references?.length;
+                    } else if (data.type === 'mcp_response') {
+                        state.mcpResponse = data;
+                        renderMcpResponse(data);
+                        state.mcpRendered = true;
+                    } else if (data.type === 'message_complete') {
+                        // 关键：job 流里也要同步全局 currentMessageId，否则 follow_up_questions 可能回退到上一条
+                        if (data.message_id) {
+                            state.currentMessageId = data.message_id;
+                            currentMessageId = data.message_id;
+                            // 同步写入当前流式容器的 data-message-id，保证 follow_up_questions 能精准命中
+                            const streamingContainer = document.getElementById('ai-main')?.closest('.message-container');
+                            if (streamingContainer && !streamingContainer.dataset.messageId) {
+                                streamingContainer.dataset.messageId = String(data.message_id);
+                            }
+                        }
+                        state.ragResponse = data.rag_response;
+                        state.references = data.references;
+                        renderReferences(state.references);
+                        state.referencesRendered = !!state.references?.length;
+                        // 如果完成时有MCP信息但尚未渲染，补充渲染一次
+                        if (!state.mcpRendered && state.mcpResponse) {
+                            renderMcpResponse(state.mcpResponse);
+                            state.mcpRendered = true;
+                        }
+                    } else if (data.type === 'report_workflow_start') {
+                        renderWorkflowStage(`🔄 ${i18n.t('reportWorkflowStarting') || '报告工作流启动'}`);
+                    } else if (data.type === 'stage') {
+                        state.workflowStageIndex += 1;
+                        const title = data.title || `${i18n.t('stage') || '阶段'} ${state.workflowStageIndex}`;
+                        const content = data.content || '';
+                        renderWorkflowStage(`✅ ${title}\n${content}`);
+                    } else if (data.type === 'complete') {
+                        // 确保在生成最终消息前清理流式临时卡片，避免重复
+                        cleanupStreamingArtifacts();
+                        renderAIMessage(state.aiContent);
+                        if (state.isWorkflow) {
+                            renderWorkflowStage(`🎉 ${i18n.t('reportWorkflowFinished') || '报告工作流完成'}`);
+                        }
+                        removeAiLoading();
+                        // 记录待挂起的引导问题目标 messageId，等待 follow_up_questions 事件
+                        // 兼容：如果后端在 complete 里带 message_id，则兜底写入
+                        if (!state.currentMessageId && (data.message_id || data.messageId)) {
+                            state.currentMessageId = data.message_id || data.messageId;
+                        }
+                        if (state.currentMessageId) {
+                            currentMessageId = state.currentMessageId;
+                        }
+                        setPendingFollowup(state.currentMessageId || currentMessageId);
+                        const aiMessage = {
+                            id: state.currentMessageId || undefined,
+                            role: 'assistant',
+                            content: state.aiContent,
+                            thinkContent: state.thinkContent,
+                            ragResponse: state.ragResponse,
+                            references: state.references,
+                            mcp_response: state.mcpResponse,
+                            is_workflow: state.isWorkflow,
+                            workflow_stage_index: state.workflowStageIndex
+                        };
+                        // 优先复用流式容器，避免完成后重复渲染同一条消息
+                        // 注意：如果在流式阶段已经用 appendFollowUpsAfterLatestAI 把 message-container 包进了 message-wrapper，
+                        // 这里必须替换 wrapper 而不是仅替换 message-container，否则会出现“嵌套 wrapper”导致引导问题挂错位置。
+                        let replaced = false;
+                        const streamingMain = document.getElementById('ai-main');
+                        const streamingContainer = streamingMain?.closest('.message-container');
+                        const streamingWrapper = streamingContainer?.closest('.message-wrapper') || null;
+                        if (streamingContainer) {
+                            const finalElement = createMessageElement(aiMessage);
+                            if (finalElement) {
+                                if (streamingWrapper) {
+                                    // 迁移已渲染的引导问题（如果有），确保不会因替换 wrapper 而丢失
+                                    const existingFollowUpsFlex = streamingWrapper.querySelector('.follow-up-questions')?.closest('.d-flex') || null;
+                                    const finalHasFollowUps = !!finalElement.querySelector('.follow-up-questions');
+                                    if (existingFollowUpsFlex && !finalHasFollowUps) {
+                                        finalElement.appendChild(existingFollowUpsFlex);
+                                    }
+                                    streamingWrapper.replaceWith(finalElement);
+                                } else {
+                                    streamingContainer.replaceWith(finalElement);
+                                }
+                                replaced = true;
+                            } else {
+                                // finalElement 为 null 通常表示重复渲染：清理旧流式容器/包装，避免残留
+                                if (streamingWrapper) {
+                                    streamingWrapper.remove();
+                                } else {
+                                    streamingContainer.remove();
+                                }
+                            }
+                        }
+                        if (!replaced) {
+                            appendMessage(aiMessage);
+                        }
+                        // 清理流式阶段遗留的临时卡片，避免重复显示
+                        cleanupStreamingArtifacts();
+                        scrollToBottom();
+                        persistJobState(true);
+                        currentJobId = null;
+                        currentJobSessionId = null;
+                        jobRenderState = null;
+                        isJobStreaming = false;
+                        clearJobWatchdog();
+                        jobCompleteFlag = true; // 继续等待后续可能的 follow_up_questions
+                        return false;
+                    } else if (data.type === 'follow_up_questions') {
+                        // 渲染流式结束后的引导问题（job 流）
+                        removeAiLoading();
+                        const qs = data.questions || data.follow_up_questions || [];
+                        if (qs.length > 0) {
+                            const followUpContainer = document.createElement('div');
+                            followUpContainer.className = 'd-flex justify-content-start mb-3';
+                            followUpContainer.innerHTML = `
+                                <div class="follow-up-questions" style="margin-bottom: 12px;">
+                                    ${qs.map(q => `
+                                        <button class="btn btn-outline-secondary btn-sm me-2 mb-2 follow-up-btn" 
+                                                onclick="sendFollowUpQuestion('${q.replace(/'/g, "\\'")}')"
+                                                style="font-size: 0.95rem; white-space: normal; text-align: left; height: auto; min-height: 32px;">
+                                            ${q}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            `;
+                            const followUpMessageId =
+                                data.message_id ||
+                                data.messageId ||
+                                state?.currentMessageId ||
+                                currentMessageId ||
+                                pendingFollowupMessageId;
+                            if (followUpMessageId) {
+                                currentMessageId = followUpMessageId;
+                            }
+                            appendFollowUpsAfterLatestAI(followUpContainer, followUpMessageId);
+                            // 引导问题已到，清理挂起标记
+                            setPendingFollowup(null);
+                        }
+                        return false;
+                    } else if (data.type === 'error') {
+                        console.error('Stream error:', data.message);
+                        removeAiLoading();
+                        showAlert('error', data.message || '发生错误，请稍后重试');
+                        persistJobState(true);
+                        currentJobId = null;
+                        currentJobSessionId = null;
+                        jobRenderState = null;
+                        isJobStreaming = false;
+                        clearJobWatchdog();
+                        return true;
+                    }
+                    return false;
+                }
+
+                while (true) {
+                    try {
+                        const response = await fetch(`/api/v1/chat/sessions/${currentSessionId}/jobs/${jobId}/stream?from_seq=${seqRef}`, {
+                            headers: { 'Accept': 'text/event-stream' },
+                            cache: 'no-store'
+                        });
+                        if (!response.ok || !response.body) {
+                            throw new Error(`流式连接失败: ${response.status}`);
+                        }
+                        const reader = response.body.getReader();
+                        readerRef = reader;
+                        const decoder = new TextDecoder('utf-8');
+                        let buffer = '';
+                        touchJobWatchdog('connect');
+                        clearJobWatchdog();
+                        jobWatchdogTimer = setInterval(() => {
+                            // 完成后等待更久（30s）以便生成引导问题
+                            const timeout = jobCompleteFlag ? 30000 : 10000;
+                            const gap = Date.now() - lastJobEventTs;
+                            if (gap > timeout) {
+                                try { reader.cancel(); } catch (e) { }
+                                fallbackToResume();
+                            }
+                        }, 2000);
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            buffer += decoder.decode(value, { stream: true });
+                            const lines = buffer.split('\n');
+                            buffer = lines.pop() || '';
+                            for (const line of lines) {
+                                if (line.trim() && line.startsWith('data: ')) {
+                                    try {
+                                        const data = JSON.parse(line.slice(6));
+                                        touchJobWatchdog(data.type || 'data');
+                                        const stop = await processJobEvent(data);
+                                        if (stop) {
+                                            clearJobWatchdog();
+                                            return;
+                                        }
+                                    } catch (e) {
+                                        console.error('解析任务流失败:', e, line);
+                                    }
+                                }
+                            }
+                        }
+                        clearJobWatchdog();
+                        // 如果已经收到complete，读流结束后再收尾
+                        if (jobCompleteFlag) {
+                            isJobStreaming = false;
+                            persistJobState(true);
+                            currentJobId = null;
+                            currentJobSessionId = null;
+                            jobRenderState = null;
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('任务流连接异常，1秒后重试', err);
+                        clearJobWatchdog();
+                        await new Promise(res => setTimeout(res, 1000));
+                        continue;
+                    }
+                }
+            }
+
+            // 调试辅助：在控制台执行 currentJobState() 可查看存储的状态
+            window.currentJobState = () => {
+                try { return JSON.parse(localStorage.getItem('currentJobState') || 'null'); } catch { return null; }
+            };
+
+            function resumeJobFromStorage() {
+                try {
+                    if (isJobStreaming) return;
+                    const saved = localStorage.getItem('currentJobState');
+                    if (!saved) return;
+                    const parsed = JSON.parse(saved);
+                    if (!parsed.jobId || parsed.sessionId !== currentSessionId) {
+                        localStorage.removeItem('currentJobState');
+                        return;
+                    }
+                    currentJobId = parsed.jobId;
+                    currentJobSeq = parsed.seq || 0;
+                    currentJobSessionId = parsed.sessionId;
+                    streamJob(currentJobId, currentJobSeq);
+                } catch (e) {
+                    console.error('恢复任务流失败:', e);
+                    localStorage.removeItem('currentJobState');
+                }
+            }
 
             // 加载Ollama模型列表
             async function loadOllamaModels() {
@@ -2563,11 +3191,6 @@
                         // 批量渲染消息，避免频繁的DOM操作
                         const fragment = document.createDocumentFragment();
                         sortedMessages.forEach(message => {
-                            // 如果消息还在流式生成中，跳过，让checkAndResumeStreaming来处理
-                            if (message.is_streaming && message.role === 'assistant') {
-                                console.log('跳过流式消息，等待checkAndResumeStreaming处理:', message.id);
-                                return;
-                            }
                             // 调试：检查消息数据
                             if (message.role === 'assistant' && message.follow_up_questions) {
                                 // console.log('发现AI消息包含引导问题:', message.id, message.follow_up_questions);
@@ -2594,7 +3217,14 @@
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     }, 100);
 
-                    // 检查是否有未完成的流式响应
+                    // 优先尝试恢复 job 流式（基于 job_id/seq 的断线续传）
+                    try {
+                        resumeJobFromStorage();
+                    } catch (e) {
+                        console.warn('resumeJobFromStorage error', e);
+                    }
+
+                    // 其次检查数据库记录的传统流式（非 job 流）
                     await checkAndResumeStreaming(sessionId);
 
                 } catch (error) {
@@ -2659,10 +3289,30 @@
                     if (!statusData.has_streaming) return;
 
                     console.log('检测到未完成的流式响应，开始恢复流式接收...', statusData);
+                    // 清理全局loading，避免重复“正在思考”
+                    removeAiLoading();
 
                     // 查找或创建AI消息容器
                     let aiMessageContainer = document.querySelector(`[data-message-id="${statusData.message_id}"]`);
                     let thinkDiv, mainDiv;
+
+                    if (!aiMessageContainer) {
+                        // 优先复用当前流式的通用容器（ai-main / ai-think），避免重复气泡
+                        const genericMain = document.getElementById('ai-main');
+                        if (genericMain) {
+                            const maybeContainer = genericMain.closest('.message-container');
+                            if (maybeContainer) {
+                                aiMessageContainer = maybeContainer;
+                                aiMessageContainer.dataset.messageId = statusData.message_id;
+                                // 升级通用ID为带 message_id 的ID，保持唯一性
+                                genericMain.id = `ai-main-${statusData.message_id}`;
+                                const genericThink = document.getElementById('ai-think');
+                                if (genericThink) {
+                                    genericThink.id = `ai-think-${statusData.message_id}`;
+                                }
+                            }
+                        }
+                    }
 
                     if (!aiMessageContainer) {
                         console.log('创建新的AI消息容器，message_id:', statusData.message_id);
@@ -2733,6 +3383,13 @@
 
                     console.log('最终DOM元素 - thinkDiv:', thinkDiv, 'mainDiv:', mainDiv);
 
+                    // 清理旧的加载占位，避免重复“正在思考”
+                    aiMessageContainer.querySelectorAll('#ai-loading-container, #ai-loading-container-resume, [id^="loading-"]').forEach(el => el.remove());
+
+                    // 清空旧显示，避免历史缓存残留影响顺序
+                    if (mainDiv) mainDiv.innerHTML = '';
+                    if (thinkDiv) thinkDiv.innerHTML = '';
+
                     // 立即显示已缓存的内容（使用markdown解析，确保格式正确）
                     if (statusData.content && mainDiv) {
                         let cachedContent = statusData.content || '';
@@ -2759,24 +3416,27 @@
                     }
 
                     // 显示加载动画
-                    const loadingContainer = document.createElement('div');
-                    loadingContainer.className = 'd-flex justify-content-start mb-3';
-                    loadingContainer.id = 'ai-loading-container-resume';
-                    loadingContainer.innerHTML = `
-                        <div class="card bg-white" style="max-width: 100%; width: 100%;">
-                            <div class="card-body p-2">
-                                <div class="d-flex align-items-center">
-                                    <div class="loading-dots me-2">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
+                    // 恢复流式的加载占位（如果尚未存在）
+                    if (!document.getElementById('ai-loading-container-resume')) {
+                        const loadingContainer = document.createElement('div');
+                        loadingContainer.className = 'd-flex justify-content-start mb-3';
+                        loadingContainer.id = 'ai-loading-container-resume';
+                        loadingContainer.innerHTML = `
+                            <div class="card bg-white" style="max-width: 100%; width: 100%;">
+                                <div class="card-body p-2">
+                                    <div class="d-flex align-items-center">
+                                        <div class="loading-dots me-2">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+                                        <span class="text-muted">${i18n.t('aiThinking')}</span>
                                     </div>
-                                    <span class="text-muted">${i18n.t('aiThinking')}</span>
                                 </div>
                             </div>
-                        </div>
-                    `;
-                    document.getElementById('chat-messages').appendChild(loadingContainer);
+                        `;
+                        document.getElementById('chat-messages').appendChild(loadingContainer);
+                    }
 
                     // 连接到流式端点继续接收
                     console.log('连接到流式端点:', `/api/v1/chat/sessions/${sessionId}/resume-streaming`);
@@ -2967,6 +3627,7 @@
                                 case 'complete':
                                     console.log('流式响应恢复完成，最终内容长度 - mainContent:', mainContent.length, 'thinkContent:', thinkContent.length);
                                     removeAiLoading();
+                                    cleanupStreamingArtifacts();
                                     // 确保最终内容正确显示（使用markdown解析）
                                     if (mainDiv && mainContent) {
                                         const processedContent = preprocessText(mainContent);
@@ -3176,10 +3837,13 @@
                     messageCard.style.maxWidth = '100%';
                     messageCard.style.width = '100%';
 
-                    // 相关资料卡片
-                    if (message.references && message.references.length > 0) {
+                    // 相关资料卡片（兼容 rag_response.references）
+                    const references = (message.references && message.references.length > 0)
+                        ? message.references
+                        : (message.ragResponse && message.ragResponse.references ? message.ragResponse.references : null);
+                    if (references && references.length > 0) {
                         const refDiv = document.createElement('div');
-                        refDiv.className = 'alert alert-warning mb-2';
+                        refDiv.className = 'alert alert-warning mb-2 final-rag';
                         refDiv.style.backgroundColor = '#fff';
                         refDiv.style.border = 'none';
                         refDiv.style.display = 'block';
@@ -3198,7 +3862,7 @@
                     `;
                         const refContent = document.createElement('div');
                         refContent.style.display = 'none';
-                        message.references.forEach(ref => {
+                        references.forEach(ref => {
                             const refItem = document.createElement('div');
                             refItem.className = 'card mb-2';
                             refItem.style.backgroundColor = '#fff';
@@ -3226,7 +3890,7 @@
                     // MCP工具调用响应卡片
                     if (message.mcp_response && (message.mcp_response.tool_logs || message.mcp_response.result)) {
                         const mcpDiv = document.createElement('div');
-                        mcpDiv.className = 'alert alert-info mb-2';
+                        mcpDiv.className = 'alert alert-info mb-2 final-mcp';
                         mcpDiv.style.backgroundColor = '#e7f3ff';
                         mcpDiv.style.border = '1px solid #b3d9ff';
                         mcpDiv.style.display = 'block';
@@ -3335,8 +3999,12 @@
                         thinkContent = message.streaming_think_content;
                     }
 
-                    const thinkMatch = message.content.match(/<think>([\s\S]*?)<\/think>/i);
                     let mainContent = message.content;
+                    // 优先使用显式字段，避免完成后思考消失
+                    if (!thinkContent && message.thinkContent) {
+                        thinkContent = message.thinkContent;
+                    }
+                    const thinkMatch = message.content.match(/<think>([\s\S]*?)<\/think>/i);
                     if (thinkMatch && !thinkContent) {
                         thinkContent = thinkMatch[1].trim();
                         mainContent = message.content.replace(thinkMatch[0], '').trim();
@@ -3344,6 +4012,12 @@
 
                     const contentDiv = document.createElement('div');
                     contentDiv.className = 'card-body p-2';
+
+                    // 为恢复流式统一挂载点，便于后续按 message_id 复用
+                    const thinkHost = document.createElement('div');
+                    thinkHost.id = message.id ? `ai-think-${message.id}` : 'ai-think';
+                    const mainHost = document.createElement('div');
+                    mainHost.id = message.id ? `ai-main-${message.id}` : 'ai-main';
 
                     // 思考内容
                     if (thinkContent) {
@@ -3375,7 +4049,7 @@
                                 tipDiv.querySelector('.think-toggle-icon').textContent = '▼';
                             }
                         };
-                        contentDiv.appendChild(thinkDiv);
+                        thinkHost.appendChild(thinkDiv);
                     }
 
                     // 主内容 - 支持工作流阶段渲染
@@ -3423,7 +4097,7 @@
 
                                 stageCard.appendChild(header);
                                 stageCard.appendChild(stageContent);
-                                contentDiv.appendChild(stageCard);
+                                mainHost.appendChild(stageCard);
                             });
                         } else {
                             // 普通消息渲染
@@ -3432,7 +4106,7 @@
                             replyDiv.style.backgroundColor = '#fff';
                             replyDiv.style.border = 'none';
                             replyDiv.innerHTML = marked.parse(mainContent);
-                            contentDiv.appendChild(replyDiv);
+                            mainHost.appendChild(replyDiv);
                         }
                     }
 
@@ -3448,9 +4122,11 @@
                         img.onclick = function () {
                             showImageModal(message.image_data);
                         };
-                        contentDiv.appendChild(img);
+                        mainHost.appendChild(img);
                     }
 
+                    contentDiv.appendChild(thinkHost);
+                    contentDiv.appendChild(mainHost);
                     messageCard.appendChild(contentDiv);
                 }
 
@@ -3629,20 +4305,33 @@
             function copyMessage(button) {
                 const messageContent = button.closest('.mb-3').querySelector('.card-body').textContent;
                 navigator.clipboard.writeText(messageContent).then(() => {
-                    const originalText = button.innerHTML;
+                    // 记录原始内容与提示文本，避免多次点击时丢失
+                    if (!button.dataset.originalHtml) {
+                        button.dataset.originalHtml = button.innerHTML;
+                    }
+                    if (!button.dataset.originalTitle) {
+                        button.dataset.originalTitle = button.getAttribute('title') || '';
+                    }
+
+                    // 清理上一次的恢复定时器，保证状态可重复
+                    if (button._copyResetTimeout) {
+                        clearTimeout(button._copyResetTimeout);
+                    }
+
+                    // 切换为对勾提示复制成功
                     button.innerHTML = `
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                         <path d="M20 6L9 17l-5-5"></path>
                     </svg>
-                    ${i18n.t('copied')}
                 `;
-                    button.classList.remove('btn-outline-secondary');
-                    button.classList.add('btn-success');
-                    setTimeout(() => {
-                        button.innerHTML = originalText;
-                        button.classList.remove('btn-success');
-                        button.classList.add('btn-outline-secondary');
-                    }, 2000);
+                    button.setAttribute('title', i18n.t('copied'));
+
+                    // 1 秒后恢复为复制按钮
+                    button._copyResetTimeout = setTimeout(() => {
+                        button.innerHTML = button.dataset.originalHtml;
+                        button.setAttribute('title', button.dataset.originalTitle);
+                        button._copyResetTimeout = null;
+                    }, 1000);
                 });
             }
 
@@ -3785,10 +4474,221 @@
 
             // 移除AI加载占位，便于在SSE失效时切换到恢复流
             function removeAiLoading() {
-                const loading = document.getElementById('ai-loading-container');
-                if (loading) loading.remove();
-                const loadingResume = document.getElementById('ai-loading-container-resume');
-                if (loadingResume) loadingResume.remove();
+                document.querySelectorAll('#ai-loading-container, #ai-loading-container-resume, [id^="loading-"]').forEach(el => el.remove());
+            }
+
+            // 将引导问题稳定插入到最新的 AI 消息下方
+            function appendFollowUpsAfterLatestAI(followUpContainer, preferredMessageId) {
+                const chatMessages = document.getElementById('chat-messages');
+                if (!chatMessages || !followUpContainer) {
+                    console.warn('appendFollowUpsAfterLatestAI: chatMessages 或 followUpContainer 为空');
+                    return;
+                }
+
+                // 辅助函数：判断是否是AI消息容器
+                const isAIMessageContainer = (container) => {
+                    if (!container) return false;
+                    return !container.classList.contains('text-end') &&
+                        !container.querySelector('.user-message-card');
+                };
+
+                // 1) 优先按 messageId 精准定位AI消息容器（含待挂起的引导消息ID）
+                // 清理preferredMessageId，确保它是数字ID而不是路径
+                let cleanPreferredMessageId = preferredMessageId;
+                if (cleanPreferredMessageId && typeof cleanPreferredMessageId === 'string') {
+                    // 如果是路径格式（如 "chat/:4453"），提取数字部分
+                    const match = cleanPreferredMessageId.match(/\d+$/);
+                    if (match) {
+                        cleanPreferredMessageId = parseInt(match[0], 10);
+                    } else if (isNaN(parseInt(cleanPreferredMessageId, 10))) {
+                        cleanPreferredMessageId = null;
+                    } else {
+                        cleanPreferredMessageId = parseInt(cleanPreferredMessageId, 10);
+                    }
+                }
+                const effectiveMessageId = cleanPreferredMessageId || pendingFollowupMessageId || currentMessageId;
+                console.log('appendFollowUpsAfterLatestAI: effectiveMessageId =', effectiveMessageId, 'preferredMessageId =', preferredMessageId, 'cleaned =', cleanPreferredMessageId);
+                let target = null;
+                let wrapper = null;
+
+                if (effectiveMessageId) {
+                    const foundContainer = chatMessages.querySelector(`[data-message-id="${effectiveMessageId}"]`);
+                    console.log('appendFollowUpsAfterLatestAI: 通过messageId找到容器:', foundContainer);
+                    if (foundContainer && isAIMessageContainer(foundContainer)) {
+                        target = foundContainer;
+                        wrapper = target.closest('.message-wrapper');
+                        console.log('appendFollowUpsAfterLatestAI: 找到target和wrapper:', target, wrapper);
+                    }
+                }
+
+                // 2) 当前流式容器（可能使用带messageId的ID，如 ai-main-{messageId}）
+                if (!target || !isAIMessageContainer(target)) {
+                    // 先尝试通用的 ai-main
+                    let streamingContainer = document.getElementById('ai-main')?.closest('.message-container');
+                    // 如果找不到，尝试通过messageId查找对应的流式容器
+                    if (!streamingContainer && effectiveMessageId) {
+                        const mainDiv = document.getElementById(`ai-main-${effectiveMessageId}`);
+                        if (mainDiv) {
+                            streamingContainer = mainDiv.closest('.message-container');
+                        }
+                    }
+                    if (streamingContainer && isAIMessageContainer(streamingContainer)) {
+                        target = streamingContainer;
+                        wrapper = target.closest('.message-wrapper');
+                    }
+                }
+
+                // 3) 兜底：从后往前找最近的AI消息容器（确保找到最新的）
+                if (!target || !isAIMessageContainer(target)) {
+                    const containers = Array.from(chatMessages.querySelectorAll('.message-container'));
+                    for (let i = containers.length - 1; i >= 0; i--) {
+                        const container = containers[i];
+                        if (isAIMessageContainer(container)) {
+                            // 如果找到了有messageId的容器，优先使用它
+                            if (effectiveMessageId && container.dataset.messageId === String(effectiveMessageId)) {
+                                target = container;
+                                wrapper = target.closest('.message-wrapper');
+                                break;
+                            }
+                            // 否则记录第一个找到的AI容器作为备选
+                            if (!target) {
+                                target = container;
+                                wrapper = target.closest('.message-wrapper');
+                            }
+                        }
+                    }
+                }
+
+                // 3.5) 如果已经找到了 target，但它没有 wrapper，必须立刻“就地包一层 wrapper”
+                // 否则下面的 wrapper 兜底逻辑可能会误选到上一条消息的 wrapper（你现在遇到的现象：effectiveMessageId=1657，但挂到1655）
+                if (target && isAIMessageContainer(target) && !wrapper) {
+                    const newWrapper = document.createElement('div');
+                    newWrapper.className = 'message-wrapper';
+                    // 用 replaceWith 保证 wrapper 出现在 target 原来的位置
+                    if (target.parentNode) {
+                        target.replaceWith(newWrapper);
+                        newWrapper.appendChild(target);
+                    } else {
+                        newWrapper.appendChild(target);
+                        chatMessages.appendChild(newWrapper);
+                    }
+                    wrapper = newWrapper;
+                }
+
+                // 4) 再兜底：从后往前找包含 AI 消息的 message-wrapper
+                // 仅当 target 也没找到时才允许走这条路，避免“拿到了正确 target 却被上一条 wrapper 覆盖”
+                if (!wrapper && !target) {
+                    const wrappers = Array.from(chatMessages.querySelectorAll('.message-wrapper'));
+                    for (let i = wrappers.length - 1; i >= 0; i--) {
+                        const candidate = wrappers[i];
+                        const aiContainer = candidate.querySelector('.message-container:not(.text-end)');
+                        if (aiContainer && isAIMessageContainer(aiContainer)) {
+                            // 如果找到了有messageId的容器，优先使用它
+                            if (effectiveMessageId && aiContainer.dataset.messageId === String(effectiveMessageId)) {
+                                wrapper = candidate;
+                                target = aiContainer;
+                                break;
+                            }
+                            // 否则记录第一个找到的AI wrapper作为备选
+                            if (!wrapper) {
+                                wrapper = candidate;
+                                target = aiContainer;
+                            }
+                        }
+                    }
+                }
+
+                // 如果有目标但没有 wrapper，补建 wrapper 并把目标包进去（已在 3.5 处理，这里仅保留兼容兜底）
+                // 但必须确保target是AI消息容器，不是用户消息容器
+                if (target && isAIMessageContainer(target) && !wrapper) {
+                    const newWrapper = document.createElement('div');
+                    newWrapper.className = 'message-wrapper';
+                    if (target.parentNode) {
+                        target.replaceWith(newWrapper);
+                        newWrapper.appendChild(target);
+                    } else {
+                        newWrapper.appendChild(target);
+                        chatMessages.appendChild(newWrapper);
+                    }
+                    wrapper = newWrapper;
+                }
+
+                // 最终确定要使用的wrapper和target
+                // 如果wrapper存在但包含用户消息，重新查找
+                if (wrapper) {
+                    const aiContainer = wrapper.querySelector('.message-container:not(.text-end)');
+                    const hasUserMessage = wrapper.querySelector('.message-container.text-end') ||
+                        wrapper.querySelector('.user-message-card');
+                    if (!aiContainer || !isAIMessageContainer(aiContainer) || hasUserMessage) {
+                        wrapper = null;
+                        target = null;
+                    }
+                }
+
+                // 如果还没有找到有效的wrapper，从后往前找最新的AI消息容器
+                if (!wrapper || !target) {
+                    const containers = Array.from(chatMessages.querySelectorAll('.message-container'));
+                    let matchedById = false;
+                    let latestAIContainer = null;
+                    let latestAIWrapper = null;
+
+                    for (let i = containers.length - 1; i >= 0; i--) {
+                        const container = containers[i];
+                        if (isAIMessageContainer(container)) {
+                            // 记录最新的AI容器（第一个找到的，即最后一条）
+                            if (!latestAIContainer) {
+                                latestAIContainer = container;
+                                latestAIWrapper = container.closest('.message-wrapper');
+                            }
+
+                            // 如果指定了messageId，优先匹配
+                            if (effectiveMessageId && container.dataset.messageId === String(effectiveMessageId)) {
+                                target = container;
+                                wrapper = target.closest('.message-wrapper');
+                                matchedById = true;
+                                console.log('appendFollowUpsAfterLatestAI: 通过messageId匹配到容器:', container);
+                                break;
+                            }
+                        }
+                    }
+
+                    // 如果通过messageId匹配失败，使用最新的AI消息容器
+                    if (!matchedById && latestAIContainer) {
+                        target = latestAIContainer;
+                        wrapper = latestAIWrapper;
+                        console.log('appendFollowUpsAfterLatestAI: 未找到匹配messageId的容器，使用最新的AI消息容器:', target, 'messageId =', target.dataset.messageId);
+                    }
+                }
+
+                // 如果找到了target但没有wrapper，创建一个wrapper
+                if (target && isAIMessageContainer(target) && !wrapper) {
+                    const newWrapper = document.createElement('div');
+                    newWrapper.className = 'message-wrapper';
+                    if (target.parentNode) {
+                        const parentNode = target.parentNode;
+                        const nextSibling = target.nextSibling;
+                        newWrapper.appendChild(target);
+                        if (nextSibling) {
+                            parentNode.insertBefore(newWrapper, nextSibling);
+                        } else {
+                            parentNode.appendChild(newWrapper);
+                        }
+                    }
+                    wrapper = newWrapper;
+                }
+
+                // 添加引导问题到wrapper
+                if (wrapper) {
+                    const existing = wrapper.querySelector('.follow-up-questions');
+                    if (existing && existing.closest('.d-flex')) {
+                        existing.closest('.d-flex').remove();
+                    }
+                    wrapper.appendChild(followUpContainer);
+                    console.log('appendFollowUpsAfterLatestAI: 引导问题已添加到wrapper，messageId =', effectiveMessageId);
+                } else {
+                    console.error('appendFollowUpsAfterLatestAI: 无法找到有效的AI消息容器，引导问题将被添加到末尾');
+                    chatMessages.appendChild(followUpContainer);
+                }
             }
 
             function getFileIcon(fileType) {
@@ -3977,6 +4877,40 @@
                     // 滚动到底部
                     document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
 
+                    // 新：使用 job_id + seq 的流式推送，支持断线续传
+                    try {
+                        const jobResp = await fetch(`/api/v1/chat/sessions/${currentSessionId}/jobs`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (!jobResp.ok) {
+                            throw new Error(`创建任务失败: ${jobResp.status}`);
+                        }
+                        const jobJson = await jobResp.json();
+                        const jobId = jobJson.job_id;
+                        if (!jobId) {
+                            throw new Error('未返回 job_id，无法继续流式');
+                        }
+
+                        let aiContent = '';
+                        let currentMessageId = null;
+                        let ragResponse = null;
+                        let references = null;
+                        let thinkContent = '';
+                        let mainContent = '';
+                        let referencesRendered = false;
+                        currentJobId = jobId;
+                        currentJobSessionId = currentSessionId;
+                        currentJobSeq = 0;
+                        jobRenderState = null;
+                        persistJobState(false);
+                        await streamJob(jobId, currentJobSeq);
+                        return; // 使用新的 job 流式后，直接返回，不再走旧的 SSE 逻辑
+                    } catch (streamErr) {
+                        console.error('基于 job 的流式失败，回退到旧逻辑', streamErr);
+                        // 回退到旧逻辑
+                    }
+
                     // 创建EventSource连接
                     const response = await fetch(`/api/v1/chat/sessions/${currentSessionId}/messages`, {
                         method: 'POST',
@@ -4115,8 +5049,16 @@
                                     console.log('收到MCP响应:', data);
                                     // 显示MCP工具调用结果（只要有tool_logs或result就显示）
                                     if ((data.tool_logs && data.tool_logs.length > 0) || data.result) {
+                                        // 如果已经有最终MCP卡片，则跳过流式MCP，避免重复
+                                        if (aiMessageContainer.querySelector('.final-mcp')) {
+                                            break;
+                                        }
+                                        // 移除已有的流式工具卡片，避免重复
+                                        const oldMcp = aiMessageContainer.querySelector('.streaming-mcp');
+                                        if (oldMcp) oldMcp.remove();
+
                                         const mcpDiv = document.createElement('div');
-                                        mcpDiv.className = 'alert alert-info mb-2';
+                                        mcpDiv.className = 'alert alert-info mb-2 streaming-mcp';
                                         mcpDiv.style.backgroundColor = '#e7f3ff';
                                         mcpDiv.style.border = '1px solid #b3d9ff';
                                         mcpDiv.style.display = 'block';
@@ -4240,10 +5182,18 @@
 
                                 case 'rag_references':
                                     console.log('收到RAG相关资料:', data.references);
-                                    // 立即显示检索到的相关资料
+                                    // 立即显示检索到的相关资料（带上 streaming 标记，便于完成后清理）
                                     if (data.references && data.references.length > 0 && !referencesRendered) {
+                                        // 如果已经有最终引用卡片，则跳过流式引用，避免重复
+                                        if (aiMessageContainer.querySelector('.final-rag')) {
+                                            referencesRendered = true;
+                                            break;
+                                        }
+                                        const oldRef = aiMessageContainer.querySelector('.streaming-rag');
+                                        if (oldRef) oldRef.remove();
+
                                         const refDiv = document.createElement('div');
-                                        refDiv.className = 'alert alert-warning mb-2';
+                                        refDiv.className = 'alert alert-warning mb-2 streaming-rag';
                                         refDiv.style.backgroundColor = '#fff';
                                         refDiv.style.border = 'none';
                                         refDiv.style.display = 'block';
@@ -4667,14 +5617,16 @@
                                     if (followUpLoadingContainer) {
                                         followUpLoadingContainer.remove();
                                     }
+                                    removeAiLoading();
 
                                     // 添加引导问题（插入到最新AI消息卡片后面）
-                                    if (data.questions && data.questions.length > 0) {
+                                    const qs = data.questions || data.follow_up_questions || [];
+                                    if (qs.length > 0) {
                                         const followUpContainer = document.createElement('div');
                                         followUpContainer.className = 'd-flex justify-content-start mb-3';
                                         followUpContainer.innerHTML = `
                                                 <div class="follow-up-questions" style="margin-bottom: 12px;">
-                                                    ${data.questions.map((question, index) => `
+                                                    ${qs.map((question, index) => `
                                                         <button class=\"btn btn-outline-secondary btn-sm me-2 mb-2 follow-up-btn\" 
                                                                 onclick=\"sendFollowUpQuestion('${question.replace(/'/g, "\\'")}')\"
                                                                 style=\"font-size: 0.95rem; white-space: normal; text-align: left; height: auto; min-height: 32px;\">
@@ -4683,42 +5635,48 @@
                                                     `).join('')}
                                                 </div>
                                             `;
-                                        // 找到最新的AI消息容器
-                                        const containers = Array.from(document.querySelectorAll('.message-container'));
-                                        let lastAIAssistant = null;
-
-                                        // 从后往前查找最新的AI消息容器
-                                        for (let i = containers.length - 1; i >= 0; i--) {
-                                            const container = containers[i];
-                                            const messageCard = container.querySelector('.card');
-                                            if (messageCard && !container.querySelector('.user-message-card')) {
-                                                // 这是一个AI消息容器
-                                                lastAIAssistant = container;
-                                                break;
-                                            }
-                                        }
-
-                                        // 如果找不到，使用当前正在处理的aiMessageContainer
-                                        if (!lastAIAssistant && aiMessageContainer) {
-                                            lastAIAssistant = aiMessageContainer;
-                                        }
-
-                                        if (lastAIAssistant) {
-                                            lastAIAssistant.after(followUpContainer);
-                                        } else {
-                                            // 兜底：加到消息底部
-                                            document.getElementById('chat-messages').appendChild(followUpContainer);
-                                        }
+                                        appendFollowUpsAfterLatestAI(followUpContainer, currentMessageId);
+                                        // 引导问题已到，清理挂起标记
+                                        setPendingFollowup(null);
                                     }
                                     break;
 
                                 case 'complete':
                                     console.log('所有处理完成');
                                     removeAiLoading();
+                                    // 先写入最终 messageId，避免清理时把容器当作临时节点删除
+                                    if (currentMessageId) {
+                                        aiMessageContainer.dataset.messageId = currentMessageId;
+                                    }
+                                    // 清理流式阶段临时卡片，防止最终消息重复
+                                    cleanupStreamingArtifacts();
+                                    // 记录待挂起的引导问题目标 messageId，等待 follow_up_questions 事件
+                                    setPendingFollowup(currentMessageId);
 
                                     // 为AI消息添加操作按钮
                                     if (currentMessageId) {
-                                        aiMessageContainer.dataset.messageId = currentMessageId;
+                                        // 如果当前容器没有 follow_up_questions，尝试渲染一次兜底引导问题
+                                        const wrapper = aiMessageContainer.closest('.message-wrapper');
+                                        const hasFollowUps = wrapper?.querySelector('.follow-up-questions');
+                                        const qs = data.questions || data.follow_up_questions || [];
+                                        if (!hasFollowUps && qs.length > 0) {
+                                            const followUpContainer = document.createElement('div');
+                                            followUpContainer.className = 'd-flex justify-content-start mb-3';
+                                            followUpContainer.innerHTML = `
+                                                <div class="follow-up-questions" style="margin-bottom: 12px;">
+                                                    ${qs.map((question, index) => `
+                                                        <button class="btn btn-outline-secondary btn-sm me-2 mb-2 follow-up-btn" 
+                                                                onclick="sendFollowUpQuestion('${question.replace(/'/g, "\\'")}')"
+                                                                style="font-size: 0.95rem; white-space: normal; text-align: left; height: auto; min-height: 32px;">
+                                                            ${question}
+                                                        </button>
+                                                    `).join('')}
+                                                </div>
+                                            `;
+                                            appendFollowUpsAfterLatestAI(followUpContainer, currentMessageId);
+                                            // 引导问题已到，清理挂起标记
+                                            setPendingFollowup(null);
+                                        }
                                         // 先移除已存在的actionsDiv（防止重复）
                                         const oldActions = aiMessageContainer.querySelector('.d-flex.gap-2.mt-2');
                                         if (oldActions) oldActions.remove();
@@ -4749,10 +5707,6 @@
                                     //     const chatMessages = document.getElementById('chat-messages');
                                     //     chatMessages.scrollTop = chatMessages.scrollHeight;
                                     // }, 0);
-                                    // 确保结束后刷新一次会话，避免缺失末尾内容
-                                    setTimeout(() => {
-                                        loadSession(currentSessionId);
-                                    }, 50);
                                     break;
 
                                 case 'error':
@@ -5931,6 +6885,22 @@
             }, { passive: false });
 
             const renderedMessageIds = new Set();
+            let pendingFollowupMessageId = null;
+            let pendingFollowupTimer = null;
+
+            function setPendingFollowup(messageId) {
+                // 允许显式清空：setPendingFollowup(null)
+                if (pendingFollowupTimer) {
+                    clearTimeout(pendingFollowupTimer);
+                    pendingFollowupTimer = null;
+                }
+                pendingFollowupMessageId = messageId ? messageId : null;
+                if (!messageId) return;
+                pendingFollowupTimer = setTimeout(() => {
+                    pendingFollowupMessageId = null;
+                    pendingFollowupTimer = null;
+                }, 8000);
+            }
 
             // 添加消息显示状态检查函数
             function checkMessageDisplayState() {

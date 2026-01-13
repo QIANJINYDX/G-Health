@@ -17,13 +17,9 @@ def login_required(f):
 def login_page():
     """登录页面路由"""
     if 'user_id' in session:
-        # 使用 _external=True 生成绝对URL，确保在反向代理环境下也能正确工作
-        # 如果无法生成绝对URL，则使用相对路径，让前端处理
-        try:
-            return redirect(url_for('chat.chat', _external=True))
-        except:
-            # 如果无法生成外部URL（例如没有配置SERVER_NAME），使用相对路径
-            return redirect('/api/v1/chat')
+        # 登录后跳转到聊天页：这里使用相对 URL，避免反向代理未正确传递 Host
+        # 导致 _external=True 生成 http://127.0.0.1... 这样的错误绝对地址。
+        return redirect(url_for('chat.chat'))
     return render_template('login.html')
 
 @auth_bp.route('/login', methods=['POST'])
