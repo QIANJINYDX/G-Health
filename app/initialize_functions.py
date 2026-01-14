@@ -12,10 +12,11 @@ def initialize_route(app: Flask):
         @app.route('/')
         def index():
             if 'user_id' in session:
-                # 内部跳转使用相对 URL，避免反向代理 Host 处理不当导致跳到 127.0.0.1
-                return redirect(url_for('chat.chat'))
+                # 内部跳转使用相对路径，避免反向代理 Host 处理不当导致跳到 127.0.0.1
+                # 统一带尾斜杠，避免 Flask 自动补斜杠重定向时生成错误的绝对 Location（如 http://127.0.0.1/...）
+                return redirect('/api/v1/chat/')
 
-            return redirect(url_for('auth.login_page'))
+            return redirect('/api/v1/auth/login')
             
         app.register_blueprint(main_bp, url_prefix='/api/v1/main')
         app.register_blueprint(chat_bp, url_prefix='/api/v1/chat')

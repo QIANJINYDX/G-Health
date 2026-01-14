@@ -37,11 +37,13 @@ def create_app(config=None) -> Flask:
 
     # 信任反向代理转发的协议/Host 等信息（用于生成正确的绝对 URL、scheme）
     # 注意：开启后会信任客户端可伪造的 X-Forwarded-* 头，因此只应在真实反向代理后使用。
-    enable_proxy_fix = os.environ.get(
-        'ENABLE_PROXY_FIX',
-        '1' if str(os.environ.get('FLASK_ENV', '')
-                   ).lower() == 'production' else '0'
-    ).lower() in ('1', 'true', 'yes', 'y')
+    # 默认是否启用 ProxyFix：以 create_app(config) 传入的配置名为准，而不是依赖 FLASK_ENV。
+    # 线上通过 run.py 传入 config='production'，但不一定会设置 FLASK_ENV，导致 ProxyFix 误关闭。
+    config_name = str(config).lower() if config else ''
+    default_proxy_fix = '1' if config_name == 'production' else '0'
+    enable_proxy_fix = os.environ.get('ENABLE_PROXY_FIX', default_proxy_fix).lower() in (
+        '1', 'true', 'yes', 'y'
+    )
     if enable_proxy_fix:
         app.wsgi_app = ProxyFix(
             app.wsgi_app,
@@ -51,6 +53,24 @@ def create_app(config=None) -> Flask:
             x_port=1,
             x_prefix=1,
         )
+
+    # 仅在显式开启时打印代理相关头，方便排查线上 Host/Scheme 异常
+    if os.environ.get('DEBUG_PROXY_HEADERS', '0').lower() in ('1', 'true', 'yes', 'y'):
+        @app.before_request
+        def _debug_proxy_headers():
+            # 注意：不要打印 Cookie/Authorization
+            current = {
+                'url': request.url,
+                'host': request.host,
+                'scheme': request.scheme,
+                'remote_addr': request.remote_addr,
+                'xf_host': request.headers.get('X-Forwarded-Host'),
+                'xf_proto': request.headers.get('X-Forwarded-Proto'),
+                'xf_port': request.headers.get('X-Forwarded-Port'),
+                'xf_for': request.headers.get('X-Forwarded-For'),
+                'xf_prefix': request.headers.get('X-Forwarded-Prefix'),
+            }
+            print('[proxy-debug]', current)
 
     # Initialize extensions
     initialize_db(app)

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -163,6 +164,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="lang-switcher">
         <button id="lang-zh" onclick="i18n.switchLanguage('zh')">中文</button>
@@ -178,7 +180,7 @@
                 <div class="tab active" onclick="switchTab('login')" data-i18n="login">登录</div>
                 <div class="tab" onclick="switchTab('register')" data-i18n="register">注册</div>
             </div>
-            
+
             <form id="login-form" class="login-form">
                 <div class="form-group">
                     <label for="login-username" data-i18n="username">用户名</label>
@@ -224,12 +226,12 @@
 
         // 监听语言切换
         const originalSwitchLanguage = i18n.switchLanguage;
-        i18n.switchLanguage = function(lang) {
+        i18n.switchLanguage = function (lang) {
             originalSwitchLanguage.call(this, lang);
             updateLangButtons();
         };
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             updateLangButtons();
         });
 
@@ -237,7 +239,7 @@
             const loginForm = document.getElementById('login-form');
             const registerForm = document.getElementById('register-form');
             const tabs = document.querySelectorAll('.tab');
-            
+
             tabs.forEach(t => t.classList.remove('active'));
             if (tab === 'login') {
                 loginForm.style.display = 'block';
@@ -250,7 +252,7 @@
             }
         }
 
-        document.getElementById('login-form').addEventListener('submit', async function(e) {
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
             e.preventDefault();
             const username = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
@@ -266,12 +268,25 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    // 登录成功，跳转到聊天页面（使用当前域名，避免硬编码）
-                    // 确保使用正确的协议（http/https）和域名
-                    const origin = window.location.origin;
-                    const chatUrl = origin + '/api/v1/chat';
-                    console.log('Redirecting to:', chatUrl); // 调试信息
-                    window.location.href = chatUrl;
+                    // 登录成功，跳转到聊天页面
+                    // 使用当前页面的 origin 构建完整 URL，确保使用正确的协议和域名
+                    const currentOrigin = window.location.origin;
+                    // 统一带尾斜杠，避免后端对 /api/v1/chat 自动补斜杠重定向时生成错误的绝对 Location
+                    const targetUrl = currentOrigin + '/api/v1/chat/';
+                    console.log('Login successful');
+                    console.log('Current URL:', window.location.href);
+                    console.log('Current origin:', currentOrigin);
+                    console.log('Target URL:', targetUrl);
+
+                    // 验证 origin 是否正确
+                    if (currentOrigin.includes('127.0.0.1') || currentOrigin.includes('localhost')) {
+                        console.error('WARNING: Current origin is localhost/127.0.0.1, this should not happen in production!');
+                        console.error('Please check reverse proxy configuration');
+                    }
+
+                    // 使用 replace 避免被其他代码覆盖，并阻止后续的导航
+                    window.stop(); // 停止当前页面的加载
+                    window.location.replace(targetUrl);
                 } else {
                     // 显示错误信息
                     document.getElementById('login-password-error').textContent = data.message;
@@ -282,7 +297,7 @@
             }
         });
 
-        document.getElementById('register-form').addEventListener('submit', async function(e) {
+        document.getElementById('register-form').addEventListener('submit', async function (e) {
             e.preventDefault();
             const username = document.getElementById('register-username').value;
             const password = document.getElementById('register-password').value;
@@ -319,4 +334,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>

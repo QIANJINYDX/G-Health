@@ -17,9 +17,10 @@ def login_required(f):
 def login_page():
     """登录页面路由"""
     if 'user_id' in session:
-        # 登录后跳转到聊天页：这里使用相对 URL，避免反向代理未正确传递 Host
+        # 登录后跳转到聊天页：使用相对路径，避免反向代理未正确传递 Host
         # 导致 _external=True 生成 http://127.0.0.1... 这样的错误绝对地址。
-        return redirect(url_for('chat.chat'))
+        # 统一带尾斜杠，避免 Flask 自动补斜杠重定向时生成错误的绝对 Location（如 http://127.0.0.1/...）
+        return redirect('/api/v1/chat/')
     return render_template('login.html')
 
 @auth_bp.route('/login', methods=['POST'])
@@ -102,7 +103,8 @@ def logout():
         description: 退出成功
     """
     session.pop('user_id', None)
-    return redirect(url_for('auth.login_page'))
+    # 使用相对路径，避免反向代理未正确传递 Host 导致生成错误的绝对地址
+    return redirect('/api/v1/auth/login')
 
 @auth_bp.route('/user-info', methods=['GET'])
 @login_required

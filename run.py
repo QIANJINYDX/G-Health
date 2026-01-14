@@ -10,8 +10,8 @@ shap.initjs()
 load_dotenv()
 # config = os.getenv('FLASK_ENV') or 'development'
 
-config = 'development'
-# config = 'production'
+# config = 'development'
+config = 'production'
 
 # Ensure the environment is passed to subprocess
 env = os.environ.copy()

@@ -72,7 +72,7 @@ log "Ollama is ready."
 
 # ---- 3) preload models and keep them resident ----
 # 注意：这里用 -1s 表示一直不卸载（负 duration 且带单位）
-ollama_keepalive "qwen3:14b" "-1s"
+ollama_keepalive "jishi:latest" "-1s"
 ollama_keepalive "qwen3:0.6b" "-1s"
 
 # ---- 4) activate conda env (non-interactive safe) ----
@@ -88,7 +88,7 @@ else
   eval "$(conda shell.bash hook)" || true
 fi
 
-conda activate jianxiaozhi_web
+conda activate jishi
 
 # ---- 5) start your python services ----
 start_bg "run_py" python run.py

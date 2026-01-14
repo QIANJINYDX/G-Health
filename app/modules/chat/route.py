@@ -203,7 +203,8 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return redirect(url_for('auth.login_page'))
+            # 使用相对路径，避免反向代理未正确传递 Host 导致生成错误的绝对地址
+            return redirect('/api/v1/auth/login')
         return f(*args, **kwargs)
     return decorated_function
 
