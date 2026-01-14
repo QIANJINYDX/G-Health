@@ -1,48 +1,53 @@
 import os
 import json
 
-risk_types={
-    0: "卡路里测量",
-    1: "糖尿病",
-    2: "肥胖",
-    3: "糖尿病（早期）",
-    4: "脱发",
-    5: "心脏病",
-    6: "心力衰竭",
-    7: "心脏风险",
-    8: "肝炎",
-    9: "高血压风险",
-    10: "肺癌",
-    11: "孕产妇健康",
-    12: "体检糖尿病",
-    13: "睡眠障碍",
-    14: "中风风险",
-    15: "慢性肾病",
-    16:"甲状腺癌",
-    17:"脑卒中"
+# 模型编号必须与提示词（app/util/agent_config.py）保持一致，
+# 以确保 analyze_dialogue() 输出的编号能触发正确的风险评估模型。
+risk_types = {
+    0: "糖尿病",
+    1: "糖尿病（早期）",
+    2: "体检糖尿病",
+    3: "肥胖",
+    4: "心脏病",
+    5: "心力衰竭",
+    6: "高血压风险",
+    7: "肺癌",
+    8: "孕产妇健康",
+    9: "睡眠障碍",
+    10: "中风风险",
+    11: "慢性肾病",
+    12: "甲状腺癌",
+    13: "鼻咽癌",
+    14: "卡路里测量",
+    15: "心脏风险",
+    # 额外模型（提示词未覆盖）：保留但放到后面，避免干扰 0-15 的对齐
+    16: "脱发",
+    17: "肝炎",
 }
 class RiskAssessmentConfig:
     def __init__(self):
         self.config_dir = "risk_assessment/data/config"
         self.models = {
-            0: self._load_config('calories.json'),
-            1: self._load_config('diabetes.json'),
-            2: self._load_config('obesity.json'),
-            3: self._load_config('early_diabetes.json'),
-            4: self._load_config('hair_fall.json'),
-            5: self._load_config('heart_disease.json'),
-            6: self._load_config('heart_failure_clinical_records.json'),
-            7: self._load_config('heart_risk.json'),
-            8: self._load_config('hepatitis.json'),
-            9: self._load_config('hypertension_risk.json'),
-            10: self._load_config('lung_cancer.json'),
-            11: self._load_config('maternal_health.json'),
-            12: self._load_config('physical_examination_diabetes.json'),
-            13: self._load_config('sleep_disorder.json'),
-            14: self._load_config('stroke_risk.json'),
-            15: self._load_config('kidney_disease.json'),
-            16: self._load_config('thyroid_diff.json'),
-            17: self._load_config('stroke_risk.json')
+            # 0-15：与提示词编号严格对齐
+            0: self._load_config('diabetes.json'),
+            1: self._load_config('early_diabetes.json'),
+            2: self._load_config('physical_examination_diabetes.json'),
+            3: self._load_config('obesity.json'),
+            4: self._load_config('heart_disease.json'),
+            5: self._load_config('heart_failure_clinical_records.json'),
+            6: self._load_config('hypertension_risk.json'),
+            7: self._load_config('lung_cancer.json'),
+            8: self._load_config('maternal_health.json'),
+            9: self._load_config('sleep_disorder.json'),
+            10: self._load_config('stroke_risk.json'),
+            11: self._load_config('kidney_disease.json'),
+            12: self._load_config('thyroid_diff.json'),
+            13: self._load_config('nasopharyngeal_cancer.json'),
+            14: self._load_config('calories.json'),
+            15: self._load_config('heart_risk.json'),
+            # 16+：额外模型
+            16: self._load_config('hair_fall.json'),
+            17: self._load_config('hepatitis.json'),
         }
         self.zh_to_en = {
             "糖尿病": "diabetes",
@@ -60,6 +65,7 @@ class RiskAssessmentConfig:
             "中风风险": "stroke_risk",
             "卡路里测量": "calories",
             "糖尿病（早期）": "early_diabetes"
+            ,"鼻咽癌": "nasopharyngeal_cancer"
         }
         self.en_to_zh = {
             "diabetes": "糖尿病",
@@ -77,6 +83,7 @@ class RiskAssessmentConfig:
             "stroke_risk": "中风风险",
             "calories": "卡路里测量",
             "early_diabetes": "糖尿病（早期）"
+            ,"nasopharyngeal_cancer": "鼻咽癌"
         }
         
     def _load_config(self, filename):
@@ -138,8 +145,14 @@ class RiskAssessmentConfig:
         # 根据语言选择模型名称
         if language == 'en':
             model_name_display = config.get('model_name_en', config['model_name'])
+            # 兼容：model_id=13 在提示词中代表“鼻咽癌”
+            if model_id == 13 and model_name_display == config.get('model_name_en', config['model_name']):
+                model_name_display = "Nasopharyngeal Cancer"
         else:
             model_name_display = self.en_to_zh.get(config['model_name'], config['model_name'])
+            # 兼容：model_id=13 在提示词中代表“鼻咽癌”
+            if model_id == 13:
+                model_name_display = "鼻咽癌"
         
         result = {
                 'model_name': config['model_name'],

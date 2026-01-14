@@ -17,7 +17,7 @@ CLINICAL_LANGUAGE_ANALYST_PROMPT_ZH = """你是一位专业的临床语言分析
 10: 中风风险
 11: 慢性肾病
 12: 甲状腺癌
-13: 脑卒中
+13: 鼻咽癌
 14: 热量摄入 / 卡路里测量 / 卡路里计算
 15: 心脏风险
 
@@ -35,11 +35,9 @@ CLINICAL_LANGUAGE_ANALYST_PROMPT_ZH = """你是一位专业的临床语言分析
 
 热量/卡路里相关需求：只要对话目标是热量评估、卡路里计算、饮食能量摄入估算等 → 返回 14。
 
-中风风险（10） vs 脑卒中（13）区分建议：
+鼻咽癌（13）触发建议：
 
-若对话强调“已发生/疑似正在发生的卒中事件或明确卒中后遗症”（如突发偏瘫、言语不清、口角歪斜、卒中后康复等）→ 返回 13（脑卒中）；
-
-若主要是“风险评估/预防/危险因素管理”（如高血压、房颤、吸烟、血脂异常等导致的卒中风险）→ 返回 10（中风风险）。
+若对话涉及鼻咽癌相关风险/筛查/诊断或典型症状（如持续鼻塞、回吸性血涕/鼻出血、耳闷耳鸣/听力下降、颈部无痛性肿块、头痛、复视等）或已知鼻咽癌相关检查结果/家族史 → 返回 13（鼻咽癌）。
 
 心脏病（4） vs 心力衰竭（5） vs 心脏风险（15）区分建议：
 
@@ -79,7 +77,7 @@ Model label list (ID → Name):
 10: Stroke Risk
 11: Chronic Kidney Disease
 12: Thyroid Cancer
-13: Cerebrovascular Accident (Stroke)
+13: Nasopharyngeal Cancer
 14: Calorie Intake / Calorie Measurement / Calorie Calculation
 15: Cardiovascular Risk
 
@@ -97,10 +95,9 @@ Your task: Select the single most relevant label ID from the list above as the b
 
 3. Calorie-related requests: If the dialogue aims at calorie assessment, calorie calculation, or estimating dietary energy intake → return 14.
 
-4. Stroke Risk (10) vs Cerebrovascular Accident (13):
+4. Nasopharyngeal Cancer (13):
 
-* If the dialogue emphasizes an event that has occurred or is suspected to be occurring, or clear post-stroke sequelae (e.g., sudden unilateral weakness, slurred speech, facial droop, stroke rehabilitation) → return 13 (Cerebrovascular Accident / Stroke).
-* If it primarily concerns risk assessment/prevention/risk-factor management (e.g., hypertension, atrial fibrillation, smoking, dyslipidemia–related stroke risk) → return 10 (Stroke Risk).
+* If the dialogue involves nasopharyngeal cancer–related risk/screening/diagnosis, typical symptoms (persistent nasal obstruction, blood-streaked sputum/post-nasal drip, epistaxis, ear fullness/tinnitus/hearing loss, painless neck mass, headache, diplopia), exam results, or family history → return 13 (Nasopharyngeal Cancer).
 
 5. Heart Disease (4) vs Heart Failure (5) vs Cardiovascular Risk (15):
 

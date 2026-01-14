@@ -471,7 +471,8 @@ def resume_streaming(session_id):
 
     return Response(wrapped_generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        # SSE 在 Waitress/WSGI 下不能设置 hop-by-hop 头（如 Connection）
+        'X-Accel-Buffering': 'no',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
     })
@@ -589,7 +590,8 @@ def stream_job(session_id, job_id):
     def generate():
         seq_ref = [from_seq]
         while True:
-            events, done, error = job_store.wait_for_events(job_id, seq_ref[0])
+            # 工作流等任务可能长时间无输出；缩短 wait 超时并发送 ping，避免连接/前端 watchdog 误判中断
+            events, done, error = job_store.wait_for_events(job_id, seq_ref[0], timeout=10)
             if events is None:
                 yield f"data: {json.dumps({'type': 'error', 'message': 'job_not_found'})}\n\n"
                 return
@@ -604,9 +606,13 @@ def stream_job(session_id, job_id):
                     yield f"data: {json.dumps({'type': 'complete', 'seq': seq_ref[0] + 1})}\n\n"
                 return
 
+            # 无新事件且未完成：发一个心跳，保持连接活跃
+            yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+
     return Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        # SSE 在 Waitress/WSGI 下不能设置 hop-by-hop 头（如 Connection）
+        'X-Accel-Buffering': 'no',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
     })
@@ -833,8 +839,9 @@ def send_message(session_id):
                         import time
                         time.sleep(0.01)  # 短暂延迟，确保时间戳不同
                         for image_base64 in ob_image_base64s:
+                            image_caption = "你的检测结果:" if language == 'zh' else "Your result:"
                             image_message = chat_controller.add_message(
-                                session_id, "你的检测结果:", is_user=False, message_type=1, is_visible=True, has_image=True, image_data=image_base64)
+                                session_id, image_caption, is_user=False, message_type=1, is_visible=True, has_image=True, image_data=image_base64)
                             image_messages.append(image_message)
 
                     if image_messages:
@@ -931,10 +938,24 @@ def send_message(session_id):
                     last_role = current_role
 
                 # 如果最后一条消息不是用户消息，添加当前消息（使用包含护士提示词的版本用于AI上下文）
-                if formatted_messages and formatted_messages[-1]["role"] != "user":
+                # 深度思考：要求模型把思考内容放在 <think>...</think> 中，便于前端展示
+                if deep_think:
+                    if language == 'en':
+                        think_directive = "\n\nPlease output your thinking in <think>...</think> first, then provide the final answer."
+                    else:
+                        think_directive = "\n\n请先用 <think>...</think> 输出思考过程，然后再给出最终回答。"
+                else:
+                    think_directive = ""
+
+                user_content_for_ai = (current_message_for_ai or "") + think_directive
+
+                # 确保最后一条用户消息用于 AI 的是“包含护士提示词/深度思考指令”的版本
+                if formatted_messages and formatted_messages[-1]["role"] == "user":
+                    formatted_messages[-1]["content"] = user_content_for_ai
+                else:
                     formatted_messages.append({
                         "role": "user",
-                        "content": current_message_for_ai  # 使用包含护士提示词的版本
+                        "content": user_content_for_ai
                     })
                 # 判断最后一条消息是否涉及体检报告解析、健康指标（如血糖、血压、肝功能、BMI 等）、体检异常解释、健康建议或风险评估
                 # 如果已进行风险评估图片预测，则不触发体检报告工作流
@@ -1218,48 +1239,99 @@ def send_message(session_id):
                             )
                             current_message_id = ai_message.id
 
+                            def _extract_stream_chunk(chunk_obj):
+                                """
+                                兼容多种 Ollama/Python 客户端返回结构：
+                                - pydantic/对象：chunk.message.content / chunk.message.thinking
+                                - dict：chunk['message']['content'] / chunk['message']['thinking']
+                                """
+                                try:
+                                    if isinstance(chunk_obj, dict):
+                                        msg = chunk_obj.get('message') or {}
+                                        if not isinstance(msg, dict):
+                                            msg = {}
+                                        thinking_val = msg.get('thinking') or chunk_obj.get('thinking')
+                                        content_val = msg.get('content') or chunk_obj.get('content') or chunk_obj.get('response')
+                                        return thinking_val, content_val
+
+                                    msg = getattr(chunk_obj, 'message', None)
+                                    if isinstance(msg, dict):
+                                        return msg.get('thinking'), msg.get('content')
+                                    if msg is not None:
+                                        return getattr(msg, 'thinking', None), getattr(msg, 'content', None)
+                                except Exception:
+                                    pass
+                                return None, None
+
                             for chunk in stream_response:
-                                # 先检查是否有思考内容
-                                if hasattr(chunk, 'message') and hasattr(chunk.message, 'thinking'):
-                                    thinking = chunk.message.thinking
-                                    if thinking:
-                                        think_content_accumulated += thinking
-                                        # 如果思考内容还没有发送过，先发送思考部分
-                                        if not think_content_sent:
-                                            yield f"data: {json.dumps({'type': 'thinking', 'content': thinking, 'done': False})}\n\n"
-                                            think_content_sent = True
-                                        else:
-                                            # 如果已经发送过，继续追加思考内容
-                                            yield f"data: {json.dumps({'type': 'thinking', 'content': thinking, 'done': False})}\n\n"
+                                thinking, content = _extract_stream_chunk(chunk)
+
+                                # 先处理思考内容
+                                if thinking:
+                                    think_content_accumulated += thinking
+                                    yield f"data: {json.dumps({'type': 'thinking', 'content': thinking, 'done': False})}\n\n"
+                                    think_content_sent = True
 
                                 # 然后处理内容部分
-                                if hasattr(chunk, 'message') and hasattr(chunk.message, 'content'):
-                                    content = chunk.message.content
-                                    if content:
-                                        full_response += content
-                                        # 实时更新数据库中的流式内容
-                                        if current_message_id:
-                                            try:
-                                                chat_controller.update_streaming_content(
-                                                    current_message_id,
-                                                    full_response,
-                                                    think_content_accumulated if think_content_accumulated else None
-                                                )
-                                            except Exception as update_error:
-                                                print(
-                                                    f"更新流式内容失败: {str(update_error)}")
-                                        yield f"data: {json.dumps({'type': 'content', 'content': content, 'done': False})}\n\n"
+                                if content:
+                                    # deep_think 时：尽量从 content 中拆出 <think> / <redacted_reasoning> 作为思考内容
+                                    # 这样即使模型不返回 message.thinking 字段，也能展示思考内容
+                                    if deep_think:
+                                        raw = str(content)
+                                        # 统一兼容两种标签
+                                        # - <think>...</think>
+                                        # - <redacted_reasoning>...</redacted_reasoning>
+                                        # 以及异常的 </redacted_reasoning> 作为 </think> 的闭合
+                                        think_patterns = [
+                                            (r"<think>([\s\S]*?)(?:</think>|</redacted_reasoning>)", True),
+                                            (r"<redacted_reasoning>([\s\S]*?)</redacted_reasoning>", True),
+                                        ]
+
+                                        extracted_any = False
+                                        for pat, _ in think_patterns:
+                                            m = re.search(pat, raw, flags=re.IGNORECASE)
+                                            if m:
+                                                extracted_any = True
+                                                think_part = (m.group(1) or "").strip()
+                                                if think_part:
+                                                    think_content_accumulated += think_part
+                                                    yield f"data: {json.dumps({'type': 'thinking', 'content': think_part, 'done': False})}\n\n"
+                                                    think_content_sent = True
+                                                # 去掉思考段落，剩余作为主内容
+                                                raw = re.sub(pat, "", raw, flags=re.IGNORECASE).strip()
+
+                                        content = raw if extracted_any else content
+
+                                    full_response += content
+                                    # 实时更新数据库中的流式内容
+                                    if current_message_id:
+                                        try:
+                                            chat_controller.update_streaming_content(
+                                                current_message_id,
+                                                full_response,
+                                                think_content_accumulated if think_content_accumulated else None
+                                            )
+                                        except Exception as update_error:
+                                            print(
+                                                f"更新流式内容失败: {str(update_error)}")
+                                    yield f"data: {json.dumps({'type': 'content', 'content': content, 'done': False})}\n\n"
                         except Exception as stream_error:
                             print(
                                 f"Stream processing error: {str(stream_error)}")
                             # 如果流式处理失败，尝试获取完整响应
                             try:
-                                if hasattr(stream_response, 'message') and hasattr(stream_response.message, 'content'):
-                                    full_response = stream_response.message.content
+                                if isinstance(stream_response, dict):
+                                    msg = stream_response.get('message') or {}
+                                    if isinstance(msg, dict):
+                                        full_response = msg.get('content') or ""
+                                        think_content_accumulated = msg.get('thinking') or ""
+                                else:
+                                    if hasattr(stream_response, 'message') and hasattr(stream_response.message, 'content'):
+                                        full_response = stream_response.message.content
                                     # 尝试获取思考内容
                                     if hasattr(stream_response, 'message') and hasattr(stream_response.message, 'thinking'):
                                         think_content_accumulated = stream_response.message.thinking or ""
-                                    yield f"data: {json.dumps({'type': 'content', 'content': full_response, 'done': True})}\n\n"
+                                yield f"data: {json.dumps({'type': 'content', 'content': full_response, 'done': True})}\n\n"
                             except:
                                 # 如果都失败了，发送错误
                                 yield f"data: {json.dumps({'type': 'error', 'message': '流式响应处理失败'})}\n\n"
@@ -1402,7 +1474,8 @@ def send_message(session_id):
 
     return Response(wrapped_generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        # SSE 在 Waitress/WSGI 下不能设置 hop-by-hop 头（如 Connection）
+        'X-Accel-Buffering': 'no',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
     })
@@ -1586,7 +1659,8 @@ def test_sse():
 
     return Response(generate(), mimetype='text/event-stream', headers={
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        # SSE 在 Waitress/WSGI 下不能设置 hop-by-hop 头（如 Connection）
+        'X-Accel-Buffering': 'no',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Cache-Control'
     })

@@ -38,6 +38,7 @@ from collections import defaultdict, deque
 import torch
 import traceback, linecache
 from datetime import datetime
+from pathlib import Path
 import os
 import requests
 
@@ -108,11 +109,16 @@ def query_rag_service(question: str, k: int = 3, only_references: bool = True) -
 class WorkflowLogger:
     """工作流日志记录器，用于记录整个工作流的所有阶段到单个JSON文件"""
     
-    def __init__(self, log_dir: str = "/inspire/hdd/project/aiscientist/yedongxin-CZXS25120006/MedicalExaminationAgent/PhysicalExaminationAgent/client/result"):
-        self.log_dir = log_dir
+    def __init__(self, log_dir: str = None):
+        """
+        Args:
+            log_dir: 日志目录（可选）。建议通过环境变量 WORKFLOW_LOG_DIR 配置。
+        """
+        # 选择一个“可写”的日志目录：优先显式参数，其次环境变量，
+        # 默认使用相对路径 logs/workflow（相对于进程工作目录，一般为项目根），最后回退到 /tmp
+        self.log_dir = self._pick_writable_log_dir(log_dir)
         self.workflow_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.log_filename = f"workflow_log_{self.workflow_id}.json"
-        self.log_path = os.path.join(log_dir, self.log_filename)
         self.log_data = {
             "workflow_id": self.workflow_id,
             "start_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -120,7 +126,46 @@ class WorkflowLogger:
         }
         
         # 确保日志目录存在
-        os.makedirs(log_dir, exist_ok=True)
+        os.makedirs(self.log_dir, exist_ok=True)
+        self.log_path = os.path.join(self.log_dir, self.log_filename)
+
+    def _pick_writable_log_dir(self, explicit_dir: str = None) -> str:
+        candidates = []
+        if explicit_dir:
+            candidates.append(explicit_dir)
+        env_dir = os.getenv("WORKFLOW_LOG_DIR")
+        if env_dir:
+            candidates.append(env_dir)
+
+        # 默认：相对路径 logs/workflow（相对于进程工作目录）
+        candidates.append(os.path.join("logs", "workflow"))
+
+        # 兼容：项目内 logs/workflow（相对当前文件：.../app/util/clinical_analyst.py -> 项目根）
+        try:
+            project_root = Path(__file__).resolve().parents[2]
+            candidates.append(str(project_root / "logs" / "workflow"))
+        except Exception:
+            pass
+
+        # 最后兜底：/tmp
+        candidates.append("/tmp/jishi_workflow_logs")
+
+        for d in candidates:
+            try:
+                os.makedirs(d, exist_ok=True)
+                test_path = os.path.join(d, ".write_test")
+                with open(test_path, "w", encoding="utf-8") as f:
+                    f.write("ok")
+                try:
+                    os.remove(test_path)
+                except Exception:
+                    pass
+                return d
+            except Exception:
+                continue
+
+        # 极端情况：当前目录
+        return "."
     
     def _serialize_content(self, content: Any) -> Any:
         """将内容转换为JSON可序列化的格式"""
@@ -224,8 +269,17 @@ class WorkflowLogger:
             self.log_data["stages"].append(stage_data)
             
             # 写入JSON文件
-            with open(self.log_path, 'w', encoding='utf-8') as f:
-                json.dump(self.log_data, f, ensure_ascii=False, indent=2, default=self._json_default)
+            try:
+                with open(self.log_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.log_data, f, ensure_ascii=False, indent=2, default=self._json_default)
+            except PermissionError as e:
+                # 如果运行中目录权限变化/被挂载只读，则回退到 /tmp 再写一次
+                fallback_dir = "/tmp/jishi_workflow_logs"
+                os.makedirs(fallback_dir, exist_ok=True)
+                self.log_dir = fallback_dir
+                self.log_path = os.path.join(self.log_dir, self.log_filename)
+                with open(self.log_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.log_data, f, ensure_ascii=False, indent=2, default=self._json_default)
                 
             print(f"阶段 '{stage_name}' 已记录到: {self.log_path}")
             
@@ -239,8 +293,16 @@ class WorkflowLogger:
             self.log_data["end_time"] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             self.log_data["total_stages"] = len(self.log_data["stages"])
             
-            with open(self.log_path, 'w', encoding='utf-8') as f:
-                json.dump(self.log_data, f, ensure_ascii=False, indent=2, default=self._json_default)
+            try:
+                with open(self.log_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.log_data, f, ensure_ascii=False, indent=2, default=self._json_default)
+            except PermissionError:
+                fallback_dir = "/tmp/jishi_workflow_logs"
+                os.makedirs(fallback_dir, exist_ok=True)
+                self.log_dir = fallback_dir
+                self.log_path = os.path.join(self.log_dir, self.log_filename)
+                with open(self.log_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.log_data, f, ensure_ascii=False, indent=2, default=self._json_default)
                 
             print(f"工作流日志已完成: {self.log_path}")
             
@@ -609,7 +671,7 @@ def chat_with_llm(
                 # 思考模式，添加/think后缀（如果没有）
                 if not chat_messages[-1]["content"].rstrip().endswith("/think"):
                     chat_messages[-1]["content"] = chat_messages[-1]["content"].rstrip() + "/think"
-                deep_think=False # 济世模型后续传入的设为False
+                # deep_think=False # 济世模型后续传入的设为False
             else:
                 # 非思考模式，添加/no_think后缀（如果没有）
                 if not chat_messages[-1]["content"].rstrip().endswith("/no_think"):
@@ -679,12 +741,20 @@ def chat_with_llm(
         print("USE_RAG:",use_rag)
         print("USE_MCP:",use_mcp)
         # 调用Ollama API
+        # 提高长文本生成上限（避免体检报告工作流等长输出被截断）
+        try:
+            num_predict = int(os.getenv("OLLAMA_NUM_PREDICT", "4096"))
+        except Exception:
+            num_predict = 4096
         response = client.chat(
             model=model,
             messages=chat_messages,
             stream=stream,
             think=deep_think,
-            keep_alive=-1
+            keep_alive=-1,
+            options={
+                "num_predict": num_predict
+            }
             
         )
         # if deep_think:
@@ -746,6 +816,12 @@ def is_call_report_workflow(dialogue: str, client: Client, language: str = 'zh',
         model: 使用的模型名称，默认为 qwen3:32b
     """
     try:
+        # 先做一个轻量级“像不像体检指标输入”的判断：
+        # - 必须出现可解析的检测数值（如 120/80、6.5 mmol/L、ALT 35 等）
+        # - 仅出现疾病名/咨询（如“我有高血压”）不应触发体检报告工作流
+        if not _looks_like_checkup_metrics_input(dialogue):
+            return False
+
         prompt_template = get_prompt('TIJIANBAOGAO_PROMPT', language)
         prompt = prompt_template.format(user_input=dialogue)
         result = chat_with_llm(
@@ -767,6 +843,50 @@ def is_call_report_workflow(dialogue: str, client: Client, language: str = 'zh',
         print(f"Error in is_call_report_workflow: {str(e)}")
         return False
 
+def _looks_like_checkup_metrics_input(text: str) -> bool:
+    """
+    是否像“体检指标/报告解读”的输入（包含检测指标 + 对应数值）。
+    用于减少 LLM 误判与成本。
+    """
+    if not text:
+        return False
+
+    t = str(text)
+
+    # 典型体检指标关键词（出现其一即可）
+    metric_keywords = (
+        "体检", "体检报告", "报告", "化验", "检验", "检查单", "检验单", "指标", "参考范围", "参考值", "结果",
+        "血糖", "空腹血糖", "餐后血糖", "糖化血红蛋白", "HbA1c", "尿糖",
+        "血压", "收缩压", "舒张压", "心率", "脉搏",
+        "ALT", "AST", "转氨酶", "肝功能",
+        "肌酐", "尿酸", "肾功能",
+        "胆固醇", "甘油三酯", "血脂", "HDL", "LDL",
+        "BMI", "身高", "体重",
+        "血常规", "尿常规",
+    )
+
+    has_keyword = any(k in t for k in metric_keywords)
+    if not has_keyword:
+        return False
+
+    # 1) 血压形如 120/80
+    bp_pattern = r'(?<!\d)\d{2,3}\s*/\s*\d{2,3}(?!\d)'
+    if re.search(bp_pattern, t):
+        return True
+
+    # 2) 数值 + 单位（常见单位集合，覆盖体检/化验中常见表达）
+    unit_pattern = r'(?i)(mmhg|mmol\/l|mg\/dl|mg\/l|g\/l|g\/dl|umol\/l|µmol\/l|u\/l|iu\/l|ng\/ml|pg\/ml|%|bpm|次\/分|\/l)'
+    number_with_unit = r'(?<!\d)\d+(?:\.\d+)?\s*' + unit_pattern
+    if re.search(number_with_unit, t):
+        return True
+
+    # 3) 指标名附近出现数值（如 “血糖6.5” “ALT: 35”）
+    indicator_near_number = r'(血糖|空腹血糖|餐后血糖|糖化血红蛋白|HbA1c|尿糖|血压|收缩压|舒张压|心率|ALT|AST|肌酐|尿酸|胆固醇|甘油三酯|HDL|LDL|BMI)\s*[:：]?\s*\d+(?:\.\d+)?'
+    if re.search(indicator_near_number, t, flags=re.IGNORECASE):
+        return True
+
+    return False
+
 def extract_number_and_judge(response: str) -> bool:
     """
     从响应中提取数字并判断是否需要调用体检报告工作流
@@ -779,23 +899,34 @@ def extract_number_and_judge(response: str) -> bool:
     """
     try:
         # 清理响应内容
-        cleaned_response = clean_think(response)
-        
-        # 移除多余的空格、换行符和其他字符
-        cleaned_response = cleaned_response.replace(" ", "").replace("\n", "").replace("'", "").replace('"', "").replace("```", "").replace("python", "")
-        
-        # 使用正则表达式提取数字
-        import re
-        numbers = re.findall(r'\d+', cleaned_response)
-        
-        if numbers:
-            # 如果找到数字，取第一个数字进行判断
-            first_number = int(numbers[0])
-            return first_number == 1
-        else:
-            # 如果没有找到数字，检查是否包含关键词
-            keywords = ['是', '需要', '调用', '体检', '报告', 'yes', 'true', '1']
-            return any(keyword in cleaned_response.lower() for keyword in keywords)
+        cleaned = clean_think(response or "")
+
+        # 去掉围栏/空白等，但不要把中文语义词当作“真值”
+        cleaned = (
+            cleaned.replace("```", "")
+            .replace("python", "")
+            .strip()
+        )
+
+        # 最严格：只接受“纯 0/1”
+        compact = re.sub(r"\s+", "", cleaned)
+        if compact == "1":
+            return True
+        if compact == "0":
+            return False
+
+        # 次严格：尝试从 JSON/字段中提取明确的 0/1（避免把其它数字误当触发）
+        # 例如：{"result": 1} / result=0 / need_workflow:1
+        m = re.search(r'(?i)\b(result|answer|need|need_workflow|call_workflow)\b\D*([01])\b', cleaned)
+        if m:
+            return m.group(2) == "1"
+
+        # 宽松：如果回复中出现“独立的 0/1 token”，才采信；否则一律 False
+        tokens = re.findall(r'(?<!\d)([01])(?!\d)', cleaned)
+        if tokens:
+            return tokens[0] == "1"
+
+        return False
             
     except Exception as e:
         print(f"Error in extract_number_and_judge: {str(e)}")

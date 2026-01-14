@@ -1792,6 +1792,38 @@
                 // 如需视觉提示，可在此接入 Toast/Modal
             }
 
+            // --- 持久化：RAG/深度思考开关状态（刷新后恢复） ---
+            const LS_RAG_ENABLED = 'ragEnabled';
+            const LS_DEEP_THINK_ENABLED = 'deepThinkEnabled';
+
+            function renderDeepThinkToggle() {
+                const btn = document.getElementById('deep-think-button');
+                if (!btn) return;
+                if (deepThinkEnabled) {
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.classList.add('btn-primary');
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-secondary');
+                }
+            }
+
+            function renderRagToggle() {
+                const statusText = document.getElementById('rag-status-text');
+                const ragBtn = document.getElementById('rag-toggle-button');
+                if (statusText) {
+                    statusText.textContent = ragEnabled ? i18n.t('ragActivated') : i18n.t('ragNotActivated');
+                }
+                if (!ragBtn) return;
+                if (ragEnabled) {
+                    ragBtn.classList.remove('btn-outline-secondary');
+                    ragBtn.classList.add('btn-primary');
+                } else {
+                    ragBtn.classList.remove('btn-primary');
+                    ragBtn.classList.add('btn-outline-secondary');
+                }
+            }
+
             // 渲染思考/回答/阶段的基础函数，避免未定义报错
             function renderThinking(content) {
                 const el = document.getElementById('ai-think');
@@ -1824,10 +1856,17 @@
                 }
             }
             function renderWorkflowStage(text) {
+                // 兼容：将工作流阶段内容按 Markdown 渲染（旧实现只是 <br>，会导致 Markdown 不生效）
                 const el = document.getElementById('ai-main');
                 if (!el) return;
-                const wrapped = (text || '').replace(/\n/g, '<br>');
-                el.innerHTML += `<div class="mt-2">${wrapped}</div>`;
+                const processed = preprocessText(text || '');
+                try {
+                    const html = marked.parse(processed);
+                    el.innerHTML += `<div class="mt-2">${html}</div>`;
+                } catch (e) {
+                    const wrapped = processed.replace(/\n/g, '<br>');
+                    el.innerHTML += `<div class="mt-2">${wrapped}</div>`;
+                }
             }
             // 获取当前流式 AI 容器（ai-think/ai-main 所在卡片）
             function getStreamingAIContainer() {
@@ -2104,7 +2143,8 @@
                         workflowStageIndex: 0,
                         currentMessageId: null,
                         referencesRendered: false,
-                        mcpRendered: false
+                        mcpRendered: false,
+                        _workflowFinishedAppended: false
                     };
                 }
                 let jobWatchdogTimer = null;
@@ -2133,6 +2173,54 @@
                 let seqRef = fromSeq;
                 const state = jobRenderState;
 
+                function appendWorkflowStageCard(title, content, defaultExpanded = false) {
+                    const aiContainer = getStreamingAIContainer() || document.getElementById('ai-main')?.closest('.message-container');
+                    if (!aiContainer) return;
+                    const aiMainDiv = aiContainer.querySelector('#ai-main') || document.getElementById('ai-main');
+                    if (!aiMainDiv) return;
+
+                    const stageCard = document.createElement('div');
+                    stageCard.className = 'alert alert-primary mb-2';
+                    stageCard.style.backgroundColor = '#fff';
+                    stageCard.style.border = 'none';
+
+                    const header = document.createElement('div');
+                    header.style.display = 'flex';
+                    header.style.alignItems = 'center';
+                    header.style.cursor = 'pointer';
+                    header.style.userSelect = 'none';
+                    header.style.color = '#666';
+                    header.style.fontWeight = 'bold';
+                    header.style.marginBottom = '4px';
+                    header.innerHTML = `
+                        <span style="color:inherit;font-size:14px;font-weight:normal;">${title || (i18n.t('stage') || '阶段')}</span>
+                        <span class="stage-toggle-icon" style="color:inherit;font-size:14px;margin-left:6px;">${defaultExpanded ? '▲' : '▼'}</span>
+                    `;
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'stage-content';
+                    contentDiv.style.color = '#333';
+                    contentDiv.style.fontSize = '14px';
+                    contentDiv.style.borderLeft = '4px solid #ddd';
+                    contentDiv.style.paddingLeft = '12px';
+                    contentDiv.style.display = defaultExpanded ? '' : 'none';
+                    try {
+                        contentDiv.innerHTML = marked.parse(preprocessText(content || ''));
+                    } catch (e) {
+                        contentDiv.textContent = content || '';
+                    }
+
+                    header.onclick = function () {
+                        const isHidden = contentDiv.style.display === 'none';
+                        contentDiv.style.display = isHidden ? '' : 'none';
+                        header.querySelector('.stage-toggle-icon').textContent = isHidden ? '▲' : '▼';
+                    };
+
+                    stageCard.appendChild(header);
+                    stageCard.appendChild(contentDiv);
+                    aiMainDiv.appendChild(stageCard);
+                }
+
                 async function processJobEvent(data) {
                     if (!data) return false;
                     if (typeof data.seq === 'number') {
@@ -2146,6 +2234,9 @@
                     if (data.type === 'thinking') {
                         state.thinkContent += data.content || '';
                         renderThinking(state.thinkContent);
+                    } else if (data.type === 'ping') {
+                        // 心跳包：用于防止长工作流期间连接/看门狗被误判中断
+                        // 不需要渲染
                     } else if (data.type === 'content') {
                         const contentPiece = data.content || '';
                         state.aiContent += contentPiece;
@@ -2186,21 +2277,17 @@
                             state.mcpRendered = true;
                         }
                     } else if (data.type === 'report_workflow_start') {
-                        renderWorkflowStage(`🔄 ${i18n.t('reportWorkflowStarting') || '报告工作流启动'}`);
+                        // 工作流开始提示（不一定是 Markdown，但用同一渲染函数即可）
+                        appendWorkflowStageCard(`🔄 ${i18n.t('reportWorkflowStarting') || '报告工作流启动'}`, '', true);
                     } else if (data.type === 'stage') {
                         state.workflowStageIndex += 1;
                         const title = data.title || `${i18n.t('stage') || '阶段'} ${state.workflowStageIndex}`;
                         const content = data.content || '';
-                        renderWorkflowStage(`✅ ${title}\n${content}`);
+                        // 工作流阶段内容按 Markdown 渲染（修复“流式时不解析 markdown”）
+                        appendWorkflowStageCard(`✅ ${title}`, content, false);
                     } else if (data.type === 'complete') {
-                        // 确保在生成最终消息前清理流式临时卡片，避免重复
-                        cleanupStreamingArtifacts();
-                        renderAIMessage(state.aiContent);
-                        if (state.isWorkflow) {
-                            renderWorkflowStage(`🎉 ${i18n.t('reportWorkflowFinished') || '报告工作流完成'}`);
-                        }
                         removeAiLoading();
-                        // 记录待挂起的引导问题目标 messageId，等待 follow_up_questions 事件
+
                         // 兼容：如果后端在 complete 里带 message_id，则兜底写入
                         if (!state.currentMessageId && (data.message_id || data.messageId)) {
                             state.currentMessageId = data.message_id || data.messageId;
@@ -2209,6 +2296,68 @@
                             currentMessageId = state.currentMessageId;
                         }
                         setPendingFollowup(state.currentMessageId || currentMessageId);
+
+                        // 关键修复：体检报告工作流在流式阶段已经用 stage 卡片渲染了内容，
+                        // 如果这里再 renderAIMessage / createMessageElement，会把 stage DOM 覆盖成空白内容，导致“流式结束后内容消失”。
+                        if (state.isWorkflow) {
+                            // 防重复：网络重连/重复 complete 事件时避免重复追加“完成”卡片
+                            if (!state._workflowFinishedAppended) {
+                                appendWorkflowStageCard(`🎉 ${i18n.t('reportWorkflowFinished') || '报告工作流完成'}`, '', true);
+                                state._workflowFinishedAppended = true;
+                            }
+
+                            // 先写入 messageId，避免 cleanupStreamingArtifacts 误删临时容器
+                            const streamingMain = document.getElementById('ai-main');
+                            const streamingContainer = streamingMain?.closest('.message-container');
+                            if (streamingContainer && state.currentMessageId) {
+                                streamingContainer.dataset.messageId = String(state.currentMessageId);
+                            }
+                            // 仅清理流式临时卡片（RAG/MCP），保留工作流阶段卡片
+                            cleanupStreamingArtifacts();
+
+                            // 补齐操作按钮（复制/赞/踩），避免“最终替换渲染”被跳过后没有按钮
+                            const aiContainer = streamingContainer || document.getElementById('ai-think')?.closest('.message-container');
+                            if (aiContainer && state.currentMessageId) {
+                                const oldActions = aiContainer.querySelector('.d-flex.gap-2.mt-2');
+                                if (oldActions) oldActions.remove();
+                                const actionsDiv = document.createElement('div');
+                                actionsDiv.className = 'd-flex gap-2 mt-2';
+                                actionsDiv.innerHTML = `
+                                    <button class="btn-icon copy-btn" onclick="copyMessage(this)" data-i18n-title="copy" title="${i18n.t('copy')}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                                        </svg>
+                                    </button>
+                                    <button class="btn-icon feedback-btn like" onclick="handleFeedback(this, 1)" data-i18n-title="like" title="${i18n.t('like')}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                                        </svg>
+                                    </button>
+                                    <button class="btn-icon feedback-btn dislike" onclick="handleFeedback(this, -1)" data-i18n-title="dislike" title="${i18n.t('dislike')}">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path>
+                                        </svg>
+                                    </button>
+                                `;
+                                aiContainer.appendChild(actionsDiv);
+                            }
+
+                            scrollToBottom();
+                            persistJobState(true);
+                            currentJobId = null;
+                            currentJobSessionId = null;
+                            jobRenderState = null;
+                            isJobStreaming = false;
+                            clearJobWatchdog();
+                            jobCompleteFlag = true;
+                            return false;
+                        }
+
+                        // 非工作流：沿用原来的“替换为最终消息”逻辑
+                        // 先清理流式临时卡片，避免重复
+                        cleanupStreamingArtifacts();
+                        renderAIMessage(state.aiContent);
                         const aiMessage = {
                             id: state.currentMessageId || undefined,
                             role: 'assistant',
@@ -2220,41 +2369,32 @@
                             is_workflow: state.isWorkflow,
                             workflow_stage_index: state.workflowStageIndex
                         };
-                        // 优先复用流式容器，避免完成后重复渲染同一条消息
-                        // 注意：如果在流式阶段已经用 appendFollowUpsAfterLatestAI 把 message-container 包进了 message-wrapper，
-                        // 这里必须替换 wrapper 而不是仅替换 message-container，否则会出现“嵌套 wrapper”导致引导问题挂错位置。
                         let replaced = false;
-                        const streamingMain = document.getElementById('ai-main');
-                        const streamingContainer = streamingMain?.closest('.message-container');
-                        const streamingWrapper = streamingContainer?.closest('.message-wrapper') || null;
-                        if (streamingContainer) {
+                        const streamingMain2 = document.getElementById('ai-main');
+                        const streamingContainer2 = streamingMain2?.closest('.message-container');
+                        const streamingWrapper2 = streamingContainer2?.closest('.message-wrapper') || null;
+                        if (streamingContainer2) {
                             const finalElement = createMessageElement(aiMessage);
                             if (finalElement) {
-                                if (streamingWrapper) {
-                                    // 迁移已渲染的引导问题（如果有），确保不会因替换 wrapper 而丢失
-                                    const existingFollowUpsFlex = streamingWrapper.querySelector('.follow-up-questions')?.closest('.d-flex') || null;
+                                if (streamingWrapper2) {
+                                    const existingFollowUpsFlex = streamingWrapper2.querySelector('.follow-up-questions')?.closest('.d-flex') || null;
                                     const finalHasFollowUps = !!finalElement.querySelector('.follow-up-questions');
                                     if (existingFollowUpsFlex && !finalHasFollowUps) {
                                         finalElement.appendChild(existingFollowUpsFlex);
                                     }
-                                    streamingWrapper.replaceWith(finalElement);
+                                    streamingWrapper2.replaceWith(finalElement);
                                 } else {
-                                    streamingContainer.replaceWith(finalElement);
+                                    streamingContainer2.replaceWith(finalElement);
                                 }
                                 replaced = true;
                             } else {
-                                // finalElement 为 null 通常表示重复渲染：清理旧流式容器/包装，避免残留
-                                if (streamingWrapper) {
-                                    streamingWrapper.remove();
-                                } else {
-                                    streamingContainer.remove();
-                                }
+                                if (streamingWrapper2) streamingWrapper2.remove();
+                                else streamingContainer2.remove();
                             }
                         }
                         if (!replaced) {
                             appendMessage(aiMessage);
                         }
-                        // 清理流式阶段遗留的临时卡片，避免重复显示
                         cleanupStreamingArtifacts();
                         scrollToBottom();
                         persistJobState(true);
@@ -2297,6 +2437,83 @@
                             setPendingFollowup(null);
                         }
                         return false;
+                    } else if (data.type === 'risk_assessment') {
+                        // 关键修复：job 流也需要实时渲染风险评估提示，否则只能刷新后从历史里看到
+                        if (data.message_id && data.content) {
+                            appendMessage({
+                                id: data.message_id,
+                                content: data.content,
+                                role: 'assistant',
+                                message_type: 3,
+                                risk_model: data.risk_model,
+                                feedback_status: 0
+                            });
+                            scrollToBottom();
+                        }
+                        return false;
+                    } else if (data.type === 'image_message') {
+                        // 关键修复：job 流也需要实时渲染图片消息（检测结果图片），否则只能刷新后从历史里看到
+                        try {
+                            const processImageMessage = (imageData) => {
+                                data.image_data = imageData;
+                                // 创建图片消息DOM
+                                const tempDiv = document.createElement('div');
+                                appendMessage({
+                                    id: data.message_id,
+                                    content: data.content,
+                                    role: 'assistant',
+                                    message_type: 1,
+                                    feedback_status: 0,
+                                    has_image: true,
+                                    image_data: data.image_data
+                                }, tempDiv);
+
+                                const messageWrapper = tempDiv.querySelector('.message-wrapper') || tempDiv.firstChild;
+                                if (!messageWrapper) return;
+
+                                const chatMessages = document.getElementById('chat-messages');
+                                if (!chatMessages) return;
+
+                                // 查找最后一个用户消息 wrapper，将图片消息插入到它之后
+                                const allMessageWrappers = Array.from(chatMessages.querySelectorAll('.message-wrapper'));
+                                let lastUserMessageWrapper = null;
+                                for (let i = allMessageWrappers.length - 1; i >= 0; i--) {
+                                    const wrapper = allMessageWrappers[i];
+                                    const userMessageCard = wrapper.querySelector('.user-message-card');
+                                    if (userMessageCard) {
+                                        lastUserMessageWrapper = wrapper;
+                                        break;
+                                    }
+                                }
+
+                                if (lastUserMessageWrapper) {
+                                    if (lastUserMessageWrapper.nextSibling) {
+                                        chatMessages.insertBefore(messageWrapper, lastUserMessageWrapper.nextSibling);
+                                    } else {
+                                        chatMessages.appendChild(messageWrapper);
+                                    }
+                                } else {
+                                    const aiLoadingContainer = chatMessages.querySelector('#ai-loading-container');
+                                    if (aiLoadingContainer) {
+                                        chatMessages.insertBefore(messageWrapper, aiLoadingContainer);
+                                    } else {
+                                        chatMessages.appendChild(messageWrapper);
+                                    }
+                                }
+                            };
+
+                            // 通过 API 获取图片数据（避免 base64 数据过大导致 JSON 截断）
+                            fetch(`/api/v1/chat/messages/${data.message_id}/image`)
+                                .then(res => res.json())
+                                .then(imgData => {
+                                    processImageMessage(imgData.image_data);
+                                    scrollToBottom();
+                                })
+                                .catch(err => console.error('获取图片数据失败:', err));
+                        } catch (e) {
+                            console.error('处理 image_message 失败:', e);
+                        }
+                        return false;
                     } else if (data.type === 'error') {
                         console.error('Stream error:', data.message);
                         removeAiLoading();
@@ -2329,7 +2546,8 @@
                         clearJobWatchdog();
                         jobWatchdogTimer = setInterval(() => {
                             // 完成后等待更久（30s）以便生成引导问题
-                            const timeout = jobCompleteFlag ? 30000 : 10000;
+                            // 工作流阶段可能较久（LLM/检索），避免误判“卡死”导致中断/截断
+                            const timeout = jobCompleteFlag ? 30000 : (state.isWorkflow ? 180000 : 10000);
                             const gap = Date.now() - lastJobEventTs;
                             if (gap > timeout) {
                                 try { reader.cancel(); } catch (e) { }
@@ -2574,29 +2792,14 @@
 
             function toggleDeepThink() {
                 deepThinkEnabled = !deepThinkEnabled;
-                const btn = document.getElementById('deep-think-button');
-                if (deepThinkEnabled) {
-                    btn.classList.remove('btn-outline-secondary');
-                    btn.classList.add('btn-primary');
-                } else {
-                    btn.classList.remove('btn-primary');
-                    btn.classList.add('btn-outline-secondary');
-                }
+                try { localStorage.setItem(LS_DEEP_THINK_ENABLED, deepThinkEnabled ? '1' : '0'); } catch { }
+                renderDeepThinkToggle();
             }
 
             function toggleRagStatus() {
                 ragEnabled = !ragEnabled;
-                const statusText = document.getElementById('rag-status-text');
-                const ragBtn = document.getElementById('rag-toggle-button');
-                if (ragEnabled) {
-                    statusText.textContent = i18n.t('ragActivated');
-                    ragBtn.classList.remove('btn-outline-secondary');
-                    ragBtn.classList.add('btn-primary');
-                } else {
-                    statusText.textContent = i18n.t('ragNotActivated');
-                    ragBtn.classList.remove('btn-primary');
-                    ragBtn.classList.add('btn-outline-secondary');
-                }
+                try { localStorage.setItem(LS_RAG_ENABLED, ragEnabled ? '1' : '0'); } catch { }
+                renderRagToggle();
             }
 
             // 图片模态框功能
@@ -2885,6 +3088,16 @@
             // 页面加载时获取聊天历史和用户信息
             document.addEventListener('DOMContentLoaded', function () {
                 updateLangButtons();
+                // 恢复 RAG / 深度思考开关状态（刷新后不丢）
+                try {
+                    ragEnabled = localStorage.getItem(LS_RAG_ENABLED) === '1';
+                    deepThinkEnabled = localStorage.getItem(LS_DEEP_THINK_ENABLED) === '1';
+                } catch (e) {
+                    ragEnabled = false;
+                    deepThinkEnabled = false;
+                }
+                renderRagToggle();
+                renderDeepThinkToggle();
                 // 从 localStorage 恢复之前选中的对话ID
                 const savedSessionId = localStorage.getItem('currentSessionId');
                 if (savedSessionId) {
@@ -3395,7 +3608,8 @@
                         let cachedContent = statusData.content || '';
                         // 提取主要内容（去除思考内容标签）
                         if (cachedContent.includes('<think>')) {
-                            const match = cachedContent.match(/<think>.*?<\/redacted_reasoning>(.*)/s);
+                            // 兼容不同模型的 closing tag：</think> 或 </redacted_reasoning>
+                            const match = cachedContent.match(/<think>[\s\S]*?(?:<\/think>|<\/redacted_reasoning>)(.*)/s);
                             if (match) {
                                 cachedContent = match[1];
                             }
@@ -3463,7 +3677,8 @@
                         // 提取主要内容（去除思考内容标签）
                         let cachedContent = statusData.content || '';
                         if (cachedContent.includes('<think>')) {
-                            const match = cachedContent.match(/<think>.*?<\/redacted_reasoning>(.*)/s);
+                            // 兼容不同模型的 closing tag：</think> 或 </redacted_reasoning>
+                            const match = cachedContent.match(/<think>[\s\S]*?(?:<\/think>|<\/redacted_reasoning>)(.*)/s);
                             if (match) {
                                 cachedContent = match[1];
                             }
@@ -4303,8 +4518,62 @@
 
             // 复制消息内容
             function copyMessage(button) {
-                const messageContent = button.closest('.mb-3').querySelector('.card-body').textContent;
-                navigator.clipboard.writeText(messageContent).then(() => {
+                function buildCopyTextFromContainer(messageContainer) {
+                    if (!messageContainer) return '';
+
+                    // 1) 优先：工作流 stage 卡片
+                    const stageCards = Array.from(messageContainer.querySelectorAll('.alert.alert-primary'));
+                    const hasStage = stageCards.some(c => c.querySelector('.stage-content'));
+                    if (hasStage) {
+                        const parts = [];
+                        for (const card of stageCards) {
+                            const headerSpan = card.querySelector('div[style*="cursor: pointer"] span');
+                            const title = (headerSpan?.innerText || '').trim();
+                            const contentDiv = card.querySelector('.stage-content');
+                            const content = (contentDiv?.innerText || '').trim();
+                            if (title) parts.push(title);
+                            if (content) parts.push(content);
+                        }
+                        return parts.join('\n\n').trim();
+                    }
+
+                    // 2) 普通回答：取 ai-main/ai-think（存在时）
+                    const main = messageContainer.querySelector('#ai-main') || messageContainer.querySelector('[id^="ai-main-"]');
+                    const think = messageContainer.querySelector('#ai-think') || messageContainer.querySelector('[id^="ai-think-"]');
+
+                    const parts = [];
+                    if (think && think.innerText.trim()) {
+                        parts.push(think.innerText.trim());
+                    }
+                    if (main && main.innerText.trim()) {
+                        parts.push(main.innerText.trim());
+                    }
+                    if (parts.length) return parts.join('\n\n').trim();
+
+                    // 3) 最后兜底：card-body 文本（但要剔除 UI 元素）
+                    const body = messageContainer.querySelector('.card-body');
+                    if (!body) return '';
+                    const clone = body.cloneNode(true);
+                    // 移除不应复制的区域
+                    clone.querySelectorAll(
+                        '.d-flex.gap-2.mt-2,.follow-up-questions,.streaming-rag,.final-rag,.streaming-mcp,.final-mcp,button,svg'
+                    ).forEach(el => el.remove());
+                    return (clone.innerText || '').trim();
+                }
+
+                // 找到“当前消息”的容器：优先 message-wrapper 内的 assistant message-container
+                const wrapper = button.closest('.message-wrapper');
+                const messageContainer =
+                    wrapper?.querySelector('.message-container:not(.text-end)') ||
+                    button.closest('.message-container') ||
+                    button.closest('.mb-3');
+
+                const messageContent = buildCopyTextFromContainer(messageContainer);
+                if (!messageContent) {
+                    console.warn('copyMessage: empty content, container=', messageContainer);
+                }
+
+                navigator.clipboard.writeText(messageContent || '').then(() => {
                     // 记录原始内容与提示文本，避免多次点击时丢失
                     if (!button.dataset.originalHtml) {
                         button.dataset.originalHtml = button.innerHTML;
@@ -4332,6 +4601,9 @@
                         button.setAttribute('title', button.dataset.originalTitle);
                         button._copyResetTimeout = null;
                     }, 1000);
+                }).catch((err) => {
+                    console.error('copyMessage failed:', err);
+                    alert(i18n.t('copyFailed') || '复制失败，请检查浏览器权限或使用 HTTPS。');
                 });
             }
 
@@ -5440,14 +5712,14 @@
                                             const thinkMatch = aiContent.match(/<think>([\s\S]*?)<\/think>/i);
                                             mainContent = aiContent;
 
-                                            // 只有在还没有通过 thinking 类型消息渲染过思考内容时，才处理内容中的思考标签
+                                            // 只有在启用“深度思考”且还没有通过 thinking 类型消息渲染过思考内容时，才处理内容中的思考标签
                                             if (!thinkRendered) {
                                                 thinkContent = null;
                                                 if (thinkMatch) {
                                                     thinkContent = thinkMatch[1].trim();
                                                     mainContent = aiContent.replace(thinkMatch[0], '').trim();
                                                 }
-                                                if (thinkContent) {
+                                                if (deepThinkEnabled && thinkContent) {
                                                     const aiThinkDiv = aiMessageContainer.querySelector('#ai-think');
                                                     aiThinkDiv.innerHTML = '';
                                                     const thinkDiv = document.createElement('div');
