@@ -2,6 +2,7 @@
   <img src="app/static/images/logo.png" alt="JiShi logo" width="40" style="vertical-align:middle; margin-right:10px;" />
   G-Health: Clinically grounded multi-agent artificial intelligence for preventive health management
 </h1>
+
 ## Overview
 
 This project delivers a comprehensive multi-agent medical system for health examination risk assessment. It automatically interprets health check-up reports and generates structured, patient-friendly insights, including key abnormal findings, likely clinical implications, follow-up recommendations, and personalized risk stratification across 20 disease categories.
