@@ -56,15 +56,15 @@ We integrate Ollama for local LLM deployment and model invocation, providing rel
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/QIANJINYDX/JiShi.git
+   git clone https://github.com/QIANJINYDX/G-Health.git
    cd JiShi
    ```
 
 2. **Install the JiShi conda environment**:
 
    ```bash
-   conda create -n jishi python=3.11
-   conda activate jishi
+   conda create -n ghealth python=3.11
+   conda activate ghealth
    ```
 
 3. **Download the risk assessment model**:
@@ -98,7 +98,7 @@ We integrate Ollama for local LLM deployment and model invocation, providing rel
 ollama serve
 ```
 
-2. Start JiShi
+2. Start G-health
 
 ```bash
 python run.py
@@ -124,40 +124,12 @@ python start_all_mcp.py
 ```
 
 
-## Training and Model Development
-
-## Contributing
-
-This is a research project. For contributions or questions, please contact the project maintainers.
-
-## License
-
-[Specify license here]
-
-## Citation
-
-If you use this work in your research, please cite:
-
-```bibtex
-@article{multiagent_medical_llm_2024,
-  title={Multi-agent Medical Language Models for Health Examination Risk Assessment},
-  author={[Authors]},
-  journal={[Journal]},
-  year={2024}
-}
-```
-
 ## Acknowledgments
 
 - Qwen team for the base language models
 - All clinicians and medical assessors who contributed to evaluation
 - The medical corpus contributors
 
-## Contact
-
-For questions or support, please contact the project team.
-
----
 
 **Note**: This system is designed for research and clinical decision support. It should not replace professional medical judgment. Always consult qualified healthcare providers for medical decisions.
 
