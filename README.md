@@ -65,11 +65,9 @@ We integrate Ollama for local LLM deployment and model invocation, providing rel
    hf download YDXX/Risk-assessment-model
    cp -r Risk-assessment-model risk_assessment/models
    ```
-4. **RAG**
+4. **Configure MinerU**: MinerU is used for intelligent document parsing. Please refer to the [official documentation](https://mineru.org.cn) for installation and configuration instructions.
 
-5. **Configure MinerU**: MinerU is used for intelligent document parsing. Please refer to the [official documentation](https://mineru.org.cn) for installation and configuration instructions.
-
-6. **Install Ollama**: Ollama provides local LLM deployment for report interpretation and risk assessment. Visit [ollama.com](https://ollama.com/) to download and install Ollama on your system.
+5. **Install Ollama**: Ollama provides local LLM deployment for report interpretation and risk assessment. Visit [ollama.com](https://ollama.com/) to download and install Ollama on your system.
 
 ## Usage
 
