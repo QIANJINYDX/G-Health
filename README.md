@@ -1,6 +1,6 @@
 <h1>
   <img src="app/static/images/logo.png" alt="JiShi logo" width="40" style="vertical-align:middle; margin-right:10px;" />
-  JiShi: Multi-agent Medical Language Models for Health Examination Risk Assessment
+  G-Health: Clinically grounded multi-agent artificial intelligence for preventive health management
 </h1>
 ## Overview
 
