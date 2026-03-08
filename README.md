@@ -16,14 +16,6 @@ This project delivers a comprehensive multi-agent medical system for health exam
   - Heart Disease & Heart Failure
   - Hypertension Risk
   - Obesity
-  - Chronic Kidney Disease
-  - Lung Cancer
-  - Thyroid Cancer
-  - Stroke Risk
-  - Hepatitis
-  - Sleep Disorders
-  - Hair Loss
-  - Maternal Health
   - And more...
 
 ### 📊 Health Examination Report Analysis
@@ -57,10 +49,10 @@ We integrate Ollama for local LLM deployment and model invocation, providing rel
 
    ```bash
    git clone https://github.com/QIANJINYDX/G-Health.git
-   cd JiShi
+   cd G-Health
    ```
 
-2. **Install the JiShi conda environment**:
+2. **Install the G-Health conda environment**:
 
    ```bash
    conda create -n ghealth python=3.11
@@ -70,23 +62,14 @@ We integrate Ollama for local LLM deployment and model invocation, providing rel
 3. **Download the risk assessment model**:
 
    ```bash
+   hf download YDXX/Risk-assessment-model
+   cp -r Risk-assessment-model risk_assessment/models
    ```
+4. **RAG**
 
-4. **Download the risk assessment configuration files**:
+5. **Configure MinerU**: MinerU is used for intelligent document parsing. Please refer to the [official documentation](https://mineru.org.cn) for installation and configuration instructions.
 
-   ```bash
-   ```
-
-5. **Configure MinerU**:
-
-   ```bash
-   ```
-
-6. **Install Ollama**:
-
-   ```bash
-   ```
-
+6. **Install Ollama**: Ollama provides local LLM deployment for report interpretation and risk assessment. Visit [ollama.com](https://ollama.com/) to download and install Ollama on your system.
 
 ## Usage
 
